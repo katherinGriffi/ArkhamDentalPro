@@ -220,7 +220,7 @@ function IniciarSesion() {
       
       // 4. Redirección (solución para GitHub Pages)
       if (window.location.hostname.includes('github.io')) {
-        window.location.href = '/SanPedro_Transportes/#/'; // Ajusta según tu ruta base
+        window.location.href = '/AndrewsDentalGroup//#/'; // Ajusta según tu ruta base
       } else {
         navigate('/');
       }
