@@ -4,9 +4,9 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: './', // 🔥 Isso é CRUCIAL para GitHub Pages!
+  base: '/AndrewsDentalGroup/', // 🔥 Isso é CRUCIAL para GitHub Pages!
   build: {
-    outDir: '../docs', // Build na pasta docs/ no nível superior
+    outDir: 'docs', // Build na pasta docs/ no nível superior
     emptyOutDir: true,
     rollupOptions: {
       output: {
