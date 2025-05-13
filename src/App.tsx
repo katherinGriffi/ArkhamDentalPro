@@ -164,9 +164,8 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     toast.dismiss();
     console.log(`Autenticando: ${email}`);
 
-    // 1. Autenticación con Supabase
-    const { data: { user, session }, error: authError } = 
-      await supabase.auth.signInWithPassword({ email, password });
+    // Tenta autenticação com o Supabase
+    const { data: { user, session }, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError || !user || !session) {
       throw authError || new Error('Falha na autenticação');
@@ -178,54 +177,56 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       provider: user.app_metadata?.provider || 'email'
     });
 
-    // 2. Consulta con 3 métodos de respaldo
     let userData = null;
 
-    // Método 1: Consulta directa (con schema explícito)
-    const { data: directData, error: directError } = await supabase
-      .schema('andrewsdentalgroup')
-      .from('users')
-      .select('id, email, nombre, apellido, role, activo')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Método 1: Consulta direta
+  const { data: directData, error: directError } = await supabase
+  
+    .from('users')  // Nome da tabela
+  .select('id, email, nombre, apellido, role')
+  .eq('id', user.id)
+  .maybeSingle();
 
-    console.log('🔍 Método 1 - Datos directos:', directData);
-    console.log('❌ Método 1 - Error:', directError);
+    console.log('🔍 Método 1 - Dados diretos:', directData);
+    console.log('❌ Método 1 - Erro:', directError);
 
+    // Verifica se a consulta direta foi bem-sucedida
     if (!directError && directData) {
       userData = directData;
     } else {
       console.warn('🔁 Falha no método direto, tentando RPC...');
 
-      // Método 2: Función RPC (con schema también)
+      // Método 2: Consultar via RPC
       const { data: rpcData, error: rpcError } = await supabase
-        .schema('andrewsdentalgroup')
+        
         .rpc('get_user_by_id', { user_id: user.id });
 
-      console.log('🔍 Método 2 - Datos RPC:', rpcData);
-      console.log('❌ Método 2 - Error RPC:', rpcError);
+      console.log('🔍 Método 2 - Dados RPC:', rpcData);
+      console.log('❌ Método 2 - Erro RPC:', rpcError);
 
       if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
-        userData = rpcData[0];
+        userData = rpcData[0];  // Primeiro item do array, se houver
       } else if (!rpcError && typeof rpcData === 'object') {
-        userData = rpcData;
+        userData = rpcData;  // Se for um único objeto
       } else {
         console.warn('🔁 Falha no RPC, tentando SQL raw...');
-
-        // Método 3: Consulta directa sin schema (fallback)
-        const { data: sqlData } = await supabase
+        // Método 3: Consulta SQL raw
+        const { data: sqlData, error: sqlError } = await supabase
           .from('users')
           .select('id, email, nombre, apellido, role, activo')
           .eq('id', user.id)
           .maybeSingle();
 
-        console.log('🔍 Método 3 - Datos SQL raw:', sqlData);
+        console.log('🔍 Método 3 - Dados SQL raw:', sqlData);
+        console.log('❌ Método 3 - Erro SQL:', sqlError);
 
-        userData = sqlData;
+        if (sqlData) {
+          userData = sqlData;
+        }
       }
     }
 
-    // 3. Verificación final
+    // Se não encontrou os dados do usuário em nenhum método
     if (!userData) {
       console.error('🛑 Usuário não encontrado em nenhum método', {
         id: user.id,
@@ -235,20 +236,20 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       throw new Error('Registro do usuário não localizado');
     }
 
-    // Validación muy segura del campo "activo"
-    const isActive = [true, 'true', 'ativo', '1', 1].includes(String(userData.activo).toLowerCase());
+    // // Verifica se a conta está ativa
+    // const isActive = [true, 'true', 'ativo', '1', 1].includes(String(userData.activo).toLowerCase());
 
-    if (!isActive) {
-      await supabase.auth.signOut();
-      console.warn('🚫 Conta desativada:', {
-        userId: user.id,
-        userEmail: user.email,
-        userActivo: userData.activo
-      });
-      throw new Error('Conta desativada. Contate o administrador.');
-    }
+    // if (!isActive) {
+    //   await supabase.auth.signOut();
+    //   console.warn('🚫 Conta desativada:', {
+    //     userId: user.id,
+    //     userEmail: user.email,
+    //     userActivo: userData.activo
+    //   });
+    //   throw new Error('Conta desativada. Contate o administrador.');
+    // }
 
-    // 4. Guardar sesión en localStorage
+    // Armazenando dados no localStorage
     localStorage.setItem('sb-access-token', session.access_token);
     localStorage.setItem('sb-refresh-token', session.refresh_token);
     localStorage.setItem('user', JSON.stringify({
@@ -260,13 +261,7 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     }));
 
     console.log('🎉 Login bem-sucedido para:', user.email);
-
-    // Redirección segura
-   setTimeout(() => {
-  navigate('/caja');
-  window.location.reload(); // 👈 Esto fuerza que se lea la nueva sesión
-}, 100);
-
+    navigate('/caja');  // Navegação após login bem-sucedido
   } catch (error: any) {
     console.error('💥 Erro completo:', {
       message: error.message,
@@ -281,22 +276,9 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     setIsLoading(false);
   }
 };
-const handleSuccessfulLogin = (session: any, user: any, userData: any) => {
-  localStorage.setItem('sb-access-token', session.access_token);
-  localStorage.setItem('sb-refresh-token', session.refresh_token);
-  localStorage.setItem('user', JSON.stringify({
-    id: user.id,
-    email: user.email,
-    nombre: userData.nombre,
-    apellido: userData.apellido,
-    role: userData.role
-  }));
-  console.log('Login bem-sucedido para:', user.email);
-  setTimeout(() => {
-  navigate('/caja');
-  window.location.reload(); // 👈 Esto fuerza que se lea la nueva sesión
-}, 100);
-};
+
+
+
 
 const clearAuthStorage = () => {
   localStorage.removeItem('sb-access-token');
@@ -331,13 +313,14 @@ const clearAuthStorage = () => {
             </label>
             <input
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
               required
-              disabled={isLoading}
+              autoComplete="username"
               className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
-              style={{ backgroundColor: colors.primary[500] }}          />
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ backgroundColor: 'rgb(78, 2, 59)' }}
+            /> 
           </div>
 
           <div>
@@ -413,8 +396,8 @@ type User  ={
   id: string;
   nombre: string;
   apellido: string;
-  sede?: string;
-  area?: string;
+  
+  
   activo?: boolean;
   role?: string;
 }
@@ -749,60 +732,63 @@ function MiCaja({ userId }: { userId: string }) {
   }, [userId, fecha, historialVisible]);
 
   // Agregar nuevo registro
-  const agregarRegistro = async () => {
-    if (!descripcion || !valor) {
-      toast.error('Descripción y valor son requeridos');
-      return;
-    }
-  
-    if (!tipoMovimientoId) {
-      toast.error('Debe seleccionar una categoría');
-      return;
-    }
-  
-    const valorNumerico = parseFloat(valor);
-    if (isNaN(valorNumerico)) {
-      toast.error('El valor debe ser un número');
-      return;
-    }
-  
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('andrewsdentalgroup.registros_caja')
-        .insert([{
-          fecha,
-          tipo_movimiento_id: tipoMovimientoId,
-          descripcion,
-          valor: valorNumerico,
-          numero_factura: numeroFactura || null,
-          user_id: userId
-        }])
-        .select();
-  
-      if (error) throw error;
-  
-      toast.success('Registro agregado correctamente');
-      setDescripcion('');
-      setValor('');
-      setNumeroFactura('');
-      cargarRegistros(fecha);
-    } catch (error) {
-      console.error('Error agregando registro:', error);
-      toast.error('Error al agregar registro');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
+ const agregarRegistro = async () => {
+  if (!descripcion || !valor) {
+    toast.error('Descripción y valor son requeridos');
+    return;
+  }
 
+  if (!tipoMovimientoId) {
+    toast.error('Debe seleccionar una categoría');
+    return;
+  }
+
+  const valorNumerico = parseFloat(valor);
+  if (isNaN(valorNumerico)) {
+    toast.error('El valor debe ser un número');
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    // Obtener la sesión de manera más simple
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) throw new Error('Usuario no autenticado');
+
+    const { data, error } = await supabase
+      .from('registros_caja')
+      .insert([{
+        fecha,
+        tipo_movimiento_id: tipoMovimientoId,
+        descripcion,
+        valor: valorNumerico,
+        numero_factura: numeroFactura || null,
+        user_id: session.user.id
+      }])
+      .select();
+
+    if (error) throw error;
+
+    toast.success('Registro agregado correctamente');
+    setDescripcion('');
+    setValor('');
+    setNumeroFactura('');
+    cargarRegistros(fecha);
+  } catch (error: any) {
+    console.error('Error al agregar registro:', error);
+    toast.error(error.message || 'Error al agregar registro');
+  } finally {
+    setIsLoading(false);
+  }
+};
   // Eliminar registro
   const eliminarRegistro = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
 
     try {
       const { error } = await supabase
-        .from('andrewsdentalgroup.registros_caja')
+        .from('registros_caja')
         .delete()
         .eq('id', id);
 
@@ -1327,7 +1313,7 @@ function MisBoletas({ userId }: MisBoletasProps) {
     const cargarBoletas = async () => {
       try {
         const { data, error } = await supabase
-          .from('andrewsdentalgroup.boletas_usuarios')
+          .from('boletas_usuarios')
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
@@ -1444,8 +1430,7 @@ function GestionBoletas() {
     id: string;
     nombre: string;
     apellido: string;
-    sede?: string;
-    area?: string;
+   
   }>>([]);
 
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string | null>(null);
@@ -1462,8 +1447,8 @@ function GestionBoletas() {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from('andrewsdentalgroup.users')
-          .select('id, nombre, apellido, sede, area')
+          .from('users')
+          .select('id, nombre, apellido')
           .eq('activo', true)
           .order('nombre', { ascending: true });
 
@@ -1496,7 +1481,7 @@ function GestionBoletas() {
   const cargarBoletasUsuario = async () => {
     try {
       const { data, error } = await supabase
-        .from('andrewsdentalgroup.boletas_usuarios')
+        .from('boletas_usuarios')
         .select('*')
         .eq('user_id', usuarioSeleccionado)
         .order('created_at', { ascending: false });
@@ -1532,7 +1517,7 @@ function GestionBoletas() {
 
       // Verificar se é admin
       const { data: userData, error: userError } = await supabase
-        .from('andrewsdentalgroup.users')
+        .from('users')
         .select('role')
         .eq('id', user.id)
         .single();
@@ -1546,7 +1531,7 @@ function GestionBoletas() {
       
       // Upload do arquivo
       const { error: uploadError } = await supabase.storage
-        .from('andrewsdentalgroup.boletas-pago')
+        .from('boletas-pago')
         .upload(fileName, archivo, {
           cacheControl: '3600',
           upsert: true
@@ -1556,12 +1541,12 @@ function GestionBoletas() {
 
       // Obter URL pública
       const { data: { publicUrl } } = supabase.storage
-        .from('andrewsdentalgroup.boletas-pago')
+        .from('boletas-pago')
         .getPublicUrl(fileName);
         
       // Registrar no banco de dados
       const { error: insertError } = await supabase
-        .from('andrewsdentalgroup.boletas_usuarios')
+        .from('boletas_usuarios')
         .upsert({
           user_id: usuarioSeleccionado,
           mes: mes,
@@ -1595,14 +1580,14 @@ function GestionBoletas() {
   
       // Remover do storage
       const { error: deleteError } = await supabase.storage
-        .from('andrewsdentalgroup.boletas-pago')
+        .from('boletas-pago')
         .remove([filePath]);
 
       if (deleteError) throw deleteError;
 
       // Remover do banco de dados
       const { error: deleteRecordError } = await supabase
-        .from('andrewsdentalgroup.boletas_usuarios')
+        .from('boletas_usuarios')
         .delete()
         .eq('id', id);
 
@@ -1668,7 +1653,7 @@ function GestionBoletas() {
               {usuarios.map((usuario) => (
                 <option key={usuario.id} value={usuario.id}>
                   {usuario.nombre} {usuario.apellido} 
-                  {usuario.sede ? ` (${usuario.sede})` : ''}
+                 
                 </option>
               ))}
             </select>
@@ -1813,8 +1798,8 @@ function GestionDiasLibres() {
       try {
         // 1. Cargar usuarios
         const { data: usuariosData, error: usuariosError } = await supabase
-          .from('andrewsdentalgroup.users')
-          .select('id, nombre, apellido, sede, area')
+          .from('users')
+          .select('id, nombre, apellido')
           .eq('activo', true)
           .order('nombre', { ascending: true });
   
@@ -1862,7 +1847,7 @@ function GestionDiasLibres() {
 
     // Obtener el rol del usuario desde la tabla users
     const { data: userData, error: userError } = await supabase
-      .from('andrewsdentalgroup.users')
+      .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
@@ -1873,7 +1858,7 @@ function GestionDiasLibres() {
 
     // Construir la consulta base con el join correcto
     let query = supabase
-      .from('andrewsdentalgroup.dias_libres')
+      .from('dias_libres')
       .select(`
         id,
         user_id,
@@ -2017,7 +2002,7 @@ function GestionDiasLibres() {
       
       // Verificar si ya existe un día libre para este usuario en esta fecha
       const { data: existing, error: existingError } = await supabase
-        .from('andrewsdentalgroup.dias_libres')
+        .from('dias_libres')
         .select('id')
         .eq('user_id', usuarioParaAsignar)
         .eq('fecha', fechaFormateada)
@@ -2031,7 +2016,7 @@ function GestionDiasLibres() {
   
       // Crear nuevo día libre
       const { error } = await supabase
-        .from('andrewsdentalgroup.dias_libres')
+        .from('dias_libres')
         .insert([{
           user_id: usuarioParaAsignar,
           fecha: fechaFormateada,
@@ -2058,7 +2043,7 @@ function GestionDiasLibres() {
 
     try {
       const { error } = await supabase
-        .from('andrewsdentalgroup.dias_libres')
+        .from('dias_libres')
         .delete()
         .eq('id', id);
 
@@ -2378,8 +2363,8 @@ function PaginaPrincipal() {
         }
 
         const { data: userData, error: userError } = await supabase
-          .from('andrewsdentalgroup.users')
-          .select('id, email, nombre, apellido, sede, area, activo')
+          .from('users')
+          .select('id, email, nombre, apellido,  activo')
           .eq('id', session.user.id)
           .single();
 
@@ -2401,7 +2386,7 @@ function PaginaPrincipal() {
         buscarUltimoRegistro(session.user.id);
         buscarTodosRegistros(session.user.id);
         buscarLugaresTrabajo();
-        buscarDiasLibres(session.user.id);
+       
       } catch (error) {
         console.error('Error obteniendo sesión:', error);
         toast.error(error.message);
@@ -2588,20 +2573,7 @@ useEffect(() => {
 
   
   
-  const buscarDiasLibres = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('andrewsdentalgroup.dias_libres')
-        .select('*')
-        .eq('user_id', userId)
-        .order('fecha', { ascending: true });
 
-      if (error) throw error;
-      setDiasLibres(data || []);
-    } catch (error) {
-      console.error('Error cargando días libres:', error);
-    }
-  };
 
   const isAdminUser = async () => {
     try {
@@ -2609,7 +2581,7 @@ useEffect(() => {
       if (!user) return false;
   
       const { data: userData, error } = await supabase
-        .from('andrewsdentalgroup.users')
+        .from('users')
         .select('role')
         .eq('id', user.id)
         .single();
@@ -2626,7 +2598,7 @@ useEffect(() => {
   const buscarLugaresTrabajo = async () => {
     try {
       const { data, error } = await supabase
-        .from('andrewsdentalgroup.workspaces')
+        .from('workspaces')
         .select('*')
         .eq('ativo', true);
 
@@ -2644,7 +2616,7 @@ useEffect(() => {
   const buscarUltimoRegistro = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('andrewsdentalgroup.time_entries')
+        .from('time_entries')
         .select('*')
         .eq('user_id', userId)
         .is('end_time', null)
@@ -2668,7 +2640,7 @@ useEffect(() => {
 const buscarTodosRegistros = async (userId: string) => {
   try {
     const { data, error } = await supabase
-      .from('andrewsdentalgroup.time_entries')
+      .from('time_entries')
       .select('id, workplace, start_time, end_time')
       .eq('user_id', userId)
       .order('start_time', { ascending: false })
@@ -2737,7 +2709,7 @@ const iniciarTurno = async () => {
 
     // Guardar en Supabase
     const { data: registro, error } = await supabase
-      .from('andrewsdentalgroup.time_entries')
+      .from('time_entries')
       .insert([nuevoRegistro])
       .select()
       .single();
@@ -2793,7 +2765,7 @@ const finalizarTurno = async () => {
 
     // Actualizar en Supabase
     const { error } = await supabase
-      .from('andrewsdentalgroup.time_entries')
+      .from('time_entries')
       .update(actualizaciones)
       .eq('id', registroTiempo.id);
 
@@ -2857,7 +2829,7 @@ const finalizarTurno = async () => {
           }
   
           const { data: userData, error } = await supabase
-            .from('andrewsdentalgroup.users')
+            .from('users')
             .select('role')
             .eq('id', user.id)
             .single();
@@ -3231,10 +3203,10 @@ function App() {
           return;
         }
         testSupabase();
-        console.log('Verificando dados do usuário no schema andrewsdentalgroup...');
+        console.log('Verificando dados do usuário ...');
     
         const { data: userData, error: userError } = await supabase
-          .from('andrewsdentalgroup.users')
+          .from('users')
           .select('activo, nombre, apellido')
           .eq('id', session.user.id)
           .single()
@@ -3256,9 +3228,9 @@ function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        console.log('Verificando dados do usuário no schema andrewsdentalgroup...');
+        
         const { data: userData, error: userError } = await supabase
-          .from('andrewsdentalgroup.users')
+          .from('users')
           .select('activo, nombre, apellido')
           .eq('id', session.user.id)
           .single();
