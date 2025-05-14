@@ -9,14 +9,21 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'moment/locale/es';
 import { Event } from 'react-big-calendar';
-import {  Chart as ChartJS,  ArcElement,   Tooltip,  Legend} from 'chart.js';
+
 import { Pie } from 'react-chartjs-2';
+import {   Chart as ChartJS,   ArcElement,   Tooltip,   Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title } from 'chart.js';
 
 
 ChartJS.register(
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  Title
 );
 
 // Configuración del calendario
@@ -63,88 +70,36 @@ const colorAccent = '#ff9e00';
 // Paleta de colores profesional basada en #4E023B
 const colors = {
   primary: {
-    50: '#F5E8F2',
-    100: '#EBD1E5',
-    200: '#D7A3CB',
-    300: '#C374B1',
-    400: '#AF4697',
-    500: '#4E023B', // Color principal
-    600: '#3E0230',
-    700: '#2F0125',
-    800: '#1F011A',
-    900: '#10000D'
+    50: '#F5E8F2',    100: '#EBD1E5',    200: '#D7A3CB',    300: '#C374B1',
+    400: '#AF4697',    500: '#4E023B', // Color principal
+    600: '#3E0230',    700: '#2F0125',    800: '#1F011A',    900: '#10000D'
   },
   secondary: {
-    50: '#F8F1F6',
-    100: '#F1E3ED',
-    200: '#E3C7DB',
-    300: '#D5AAC9',
-    400: '#C78EB7',
-    500: '#801461', // Color secundario
-    600: '#660F4E',
-    700: '#4D0B3A',
-    800: '#330827',
-    900: '#1A0413'
+    50: '#F8F1F6',    100: '#F1E3ED',    200: '#E3C7DB',
+    300: '#D5AAC9',    400: '#C78EB7',    500: '#801461', // Color secundario
+    600: '#660F4E',    700: '#4D0B3A',    800: '#330827',    900: '#1A0413'
   },
   accent: {
-    50: '#FFF5E6',
-    100: '#FFEBCC',
-    200: '#FFD699',
-    300: '#FFC266',
-    400: '#FFAD33',
-    500: '#FF9E00', // Color de acento
-    600: '#CC7E00',
-    700: '#995F00',
-    800: '#663F00',
-    900: '#332000'
+    50: '#FFF5E6',    100: '#FFEBCC',    200: '#FFD699',    300: '#FFC266',
+    400: '#FFAD33',    500: '#FF9E00', // Color de acento
+    600: '#CC7E00',    700: '#995F00',    800: '#663F00',    900: '#332000'
   },
   neutral: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#EEEEEE',
-    300: '#E0E0E0',
-    400: '#BDBDBD',
-    500: '#9E9E9E',
-    600: '#757575',
-    700: '#616161',
-    800: '#424242',
-    900: '#212121'
+    50: '#FAFAFA',    100: '#F5F5F5',    200: '#EEEEEE',    300: '#E0E0E0',    400: '#BDBDBD',
+    500: '#9E9E9E',    600: '#757575',    700: '#616161',    800: '#424242',    900: '#212121'
   },
   success: {
-    50: '#E8F5E9',
-    100: '#C8E6C9',
-    200: '#A5D6A7',
-    300: '#81C784',
-    400: '#66BB6A',
-    500: '#4CAF50',
-    600: '#43A047',
-    700: '#388E3C',
-    800: '#2E7D32',
-    900: '#1B5E20'
+    50: '#E8F5E9',    100: '#C8E6C9',    200: '#A5D6A7',    300: '#81C784',    400: '#66BB6A',
+    500: '#4CAF50',    600: '#43A047',    700: '#388E3C',    800: '#2E7D32',    900: '#1B5E20'
   },
   warning: {
-    50: '#FFF8E1',
-    100: '#FFECB3',
-    200: '#FFE082',
-    300: '#FFD54F',
-    400: '#FFCA28',
-    500: '#FFC107',
-    600: '#FFB300',
-    700: '#FFA000',
-    800: '#FF8F00',
-    900: '#FF6F00'
+    50: '#FFF8E1',     100: '#FFECB3',    200: '#FFE082',    300: '#FFD54F',    400: '#FFCA28',    500: '#FFC107',    600: '#FFB300',    700: '#FFA000',
+    800: '#FF8F00',    900: '#FF6F00'
   },
   error: {
-    50: '#FFEBEE',
-    100: '#FFCDD2',
-    200: '#EF9A9A',
-    300: '#E57373',
-    400: '#EF5350',
-    500: '#F44336',
-    600: '#E53935',
-    700: '#D32F2F',
-    800: '#C62828',
-    900: '#B71C1C'
+    50: '#FFEBEE',    100: '#FFCDD2',    200: '#EF9A9A',    300: '#E57373',
+    400: '#EF5350',    500: '#F44336',    600: '#E53935',
+    700: '#D32F2F',    800: '#C62828',    900: '#B71C1C'
   }
 };
 
@@ -278,8 +233,6 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
 };
 
 
-
-
 const clearAuthStorage = () => {
   localStorage.removeItem('sb-access-token');
   localStorage.removeItem('sb-refresh-token');
@@ -331,8 +284,9 @@ const clearAuthStorage = () => {
               <input
                 id="password"
             type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password" // 👈 Añade esto
+            autoComplete="current-password" 
             value={password}
+            style={{ backgroundColor: 'rgb(78, 2, 59)' }}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Ingresa tu contraseña"
                 title="Contraseña de acceso"
@@ -341,9 +295,10 @@ const clearAuthStorage = () => {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 px-3 flex items-center text-sm text-gray-600"
+                
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? <EyeOff size={25} /> : <Eye size={25} />}
               </button>
             </div>
           </div>
@@ -362,8 +317,6 @@ const clearAuthStorage = () => {
     </div>
   );
 }
-
-
 
 type MisBoletasProps = {
   userId: string;
@@ -426,20 +379,371 @@ type TimeEntry = {
   end_longitude?: number | null;
 };
 
-// Agrega esto cerca de tus otros tipos
-type RegistroCaja = {
+
+
+interface TipoMovimiento {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+}
+
+interface RegistroCaja {
   id: string;
   fecha: string;
-  tipo: string;
+  tipo_movimiento_id: number;
+  tipo_movimiento?: TipoMovimiento;
   descripcion: string;
   valor: number;
-  numero_factura?: string;
+  numero_factura: string | null;
   user_id: string;
   created_at: string;
+  medico_id?: number | null;
+  medico?: {
+    id: number;
+    nombre: string;
+  };
+  forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
+}
+
+
+
+interface Doctor {
+  id: string;
+  nombre_completo: string;
+  especialidad: string | null;
+  telefono: string | null;
+  correo: string | null;
+  fecha_ingreso: string;
+  porcentaje_comision: number | null;
+  created_at: string;
+}
+
+const GestionDoctores: React.FC = () => {
+  // Estados
+  const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editingMedico, setEditingMedico] = useState<Medico | null>(null);
+
+  // Campos del formulario
+  const [nombre, setNombre] = useState('');
+  const [especialidad, setEspecialidad] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [fechaIngreso, setFechaIngreso] = useState('');
+  const [porcentajeComision, setPorcentajeComision] = useState('');
+
+  // Cargar médicos al iniciar
+  useEffect(() => {
+    fetchMedicos();
+  }, []);
+
+  const fetchMedicos = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('medicos').select('*');
+      if (error) throw error;
+      setMedicos(data || []);
+    } catch (err: any) {
+      toast.error(`Error al cargar médicos: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!nombre || !fechaIngreso) {
+      toast.error('Nombre y fecha de ingreso son obligatorios');
+      return;
+    }
+
+    const medicoData = {
+      nombre,
+      especialidad: especialidad || null,
+      telefono: telefono || null,
+      correo: correo || null,
+      fecha_ingreso: fechaIngreso,
+      porcentaje_comision: porcentajeComision ? parseFloat(porcentajeComision) : null,
+    };
+
+    try {
+      if (editingMedico) {
+        // Actualizar médico
+        const { error } = await supabase
+          .from('medicos')
+          .update(medicoData)
+          .eq('id', editingMedico.id);
+        if (error) throw error;
+        toast.success('Médico actualizado correctamente');
+      } else {
+        // Crear nuevo médico
+        const { error } = await supabase.from('medicos').insert([medicoData]);
+        if (error) throw error;
+        toast.success('Médico registrado correctamente');
+      }
+      resetForm();
+      fetchMedicos();
+    } catch (err: any) {
+      toast.error(`Error al guardar médico: ${err.message}`);
+    }
+  };
+
+  const handleEdit = (medico: Medico) => {
+    setEditingMedico(medico);
+    setNombre(medico.nombre);
+    setEspecialidad(medico.especialidad || '');
+    setTelefono(medico.telefono || '');
+    setCorreo(medico.correo || '');
+    setFechaIngreso(medico.fecha_ingreso.split('T')[0]); // Formatear solo la fecha
+    setPorcentajeComision(medico.porcentaje_comision?.toString() || '');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este médico?')) return;
+    try {
+      const { error } = await supabase.from('medicos').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Médico eliminado correctamente');
+      fetchMedicos();
+    } catch (error: any) {
+      toast.error(`Error al eliminar médico: ${error.message}`);
+    }
+  };
+
+  const resetForm = () => {
+    setEditingMedico(null);
+    setNombre('');
+    setEspecialidad('');
+    setTelefono('');
+    setCorreo('');
+    setFechaIngreso('');
+    setPorcentajeComision('');
+  };
+
+  return (
+    <div 
+  className="p-4 rounded-lg mb-6 shadow-md" 
+  style={{ backgroundColor: '#801461', color: 'white' }}
+>
+  <h2 className="text-xl md:text-2xl font-bold">Gestión de Médicos</h2>
+
+      {/* Formulario */}
+      <div className="mb-8 p-4 md:p-6 border rounded-lg bg-white shadow-sm">
+        <h3 className="text-lg md:text-xl font-semibold mb-4" style={{ color: colorPrimary }}>
+          {editingMedico ? 'Editar Médico' : 'Nuevo Médico'}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* Nombre */}
+          <div className="col-span-full">
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nombre Completo *</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+              placeholder="Ej: Dr. Juan Pérez"
+            />
+          </div>
+
+          {/* Especialidad */}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Especialidad</label>
+            <input
+              type="text"
+              value={especialidad}
+              onChange={(e) => setEspecialidad(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+              placeholder="Ej: Cardiología"
+            />
+          </div>
+
+          {/* Teléfono */}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Teléfono</label>
+            <input
+              type="text"
+              value={telefono}
+              onChange={(e) => setTelefono(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+              placeholder="Ej: +51 987654321"
+            />
+          </div>
+
+          {/* Correo */}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Correo Electrónico</label>
+            <input
+              type="email"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+              placeholder="Ej: medico@clinica.com"
+            />
+          </div>
+
+          {/* Fecha de Ingreso */}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Fecha de Ingreso *</label>
+            <input
+              type="date"
+              value={fechaIngreso}
+              onChange={(e) => setFechaIngreso(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+            />
+          </div>
+
+          {/* Porcentaje de Comisión */}
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Porcentaje de Comisión (%)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max="100"
+              value={porcentajeComision}
+              onChange={(e) => setPorcentajeComision(e.target.value)}
+              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
+              placeholder="Ej: 30.5"
+            />
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            onClick={handleSave}
+            className="px-6 py-3 bg-[#801461] text-white rounded-lg hover:bg-[#5d0e45] transition-colors text-base font-medium"
+          >
+            {editingMedico ? 'Actualizar Médico' : 'Registrar Médico'}
+          </button>
+          {editingMedico && (
+            <button
+              onClick={resetForm}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-base font-medium"
+            >
+              Cancelar Edición
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabla de Médicos */}
+      {/* Lista de Médicos */}
+<div className="bg-white p-4 md:p-6 rounded-lg shadow-sm">
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+    <h3 className="text-lg md:text-xl font-semibold" style={{ color: colorPrimary }}>
+      Listado de Médicos
+    </h3>
+    <div className="text-sm" style={{ color: colorPrimaryDark }}>
+      {medicos.length} {medicos.length === 1 ? 'médico registrado' : 'médicos registrados'}
+    </div>
+  </div>
+  
+  {loading ? (
+    <div className="text-center py-8">
+      <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#801461]"></div>
+      <p className="mt-2">Cargando médicos...</p>
+    </div>
+  ) : medicos.length === 0 ? (
+    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+      <p className="mt-2">No se encontraron médicos registrados</p>
+    </div>
+  ) : (
+    <div className="overflow-x-auto">
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr style={{ backgroundColor: colorPrimaryLight }}>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Nombre</th>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Especialidad</th>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white hidden sm:table-cell">Teléfono</th>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white hidden md:table-cell">Correo</th>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Ingreso</th>
+            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Comisión</th>
+            <th className="border p-2 md:p-3 text-center text-sm md:text-base font-semibold text-white">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {medicos.map((med) => (
+            <tr key={med.id} className="hover:bg-gray-50 even:bg-gray-50">
+              <td className="border p-2 md:p-3 text-sm md:text-base font-medium text-gray-900">
+                {med.nombre}
+              </td>
+              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900">
+                {med.especialidad || '-'}
+              </td>
+              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 hidden sm:table-cell">
+                {med.telefono || '-'}
+              </td>
+              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 hidden md:table-cell">
+                {med.correo || '-'}
+              </td>
+              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 whitespace-nowrap">
+                {new Date(med.fecha_ingreso).toLocaleDateString()}
+              </td>
+              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900">
+                {med.porcentaje_comision !== null ? `${med.porcentaje_comision}%` : '-'}
+              </td>
+              <td className="border p-2 md:p-3 text-center">
+                <div className="flex flex-col sm:flex-row gap-1 md:gap-2 justify-center">
+                  <button
+                    onClick={() => handleEdit(med)}
+                    className="px-2 py-1 md:px-3 md:py-1.5 bg-[#801461] text-black rounded text-xs md:text-sm hover:bg-[#5d0e45] transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(med.id)}
+                    className="px-2 py-1 md:px-3 md:py-1.5 bg-red-600 text-white rounded text-xs md:text-sm hover:bg-red-800 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
+    </div>
+  );
 };
 
 
+
+
+
+// Definición de interfaces
+interface TipoMovimiento {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+}
+
+interface RegistroCaja {
+  id: string;
+  fecha: string;
+  tipo_movimiento_id: number;
+  tipo_movimiento?: TipoMovimiento;
+  descripcion: string;
+  valor: number;
+  numero_factura: string | null;
+  user_id: string;
+  created_at: string;
+  usuario?: {
+    nombre: string;
+  };
+}
+
+
+
 function MiCaja({ userId }: { userId: string }) {
+  // Estados
   const [registros, setRegistros] = useState<RegistroCaja[]>([]);
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
   const [descripcion, setDescripcion] = useState('');
@@ -448,110 +752,30 @@ function MiCaja({ userId }: { userId: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [totalDia, setTotalDia] = useState(0);
   const [balanceMes, setBalanceMes] = useState(0);
-  const [tipoMovimiento, setTipoMovimiento] = useState<'ingreso' | 'egreso'>('ingreso');
+  const [tipoMovimiento, setTipoMovimiento] = useState<'Ingreso' | 'Egreso' | 'Ajuste'>('Ingreso');
   const [tipoMovimientoId, setTipoMovimientoId] = useState<number | null>(null);
   const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
   const [historialVisible, setHistorialVisible] = useState(false);
   const [historialFiltrado, setHistorialFiltrado] = useState<{ano: number, meses: {mes: number, registros: RegistroCaja[]}[]}>([]);
   const [chartData, setChartData] = useState<{ingresos: any, egresos: any} | null>(null);
+  const [medicoId, setMedicoId] = useState<number | null>(null);
+const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
+const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
 
-  interface TipoMovimiento {
-    id: number;
-    nombre: string;
-    activo: boolean;
-    tipo: 'ingreso' | 'egreso';
-  }
-
-  interface RegistroCaja {
-    id: string;
-    fecha: string;
-    tipo_movimiento_id: number;
-    tipo_movimiento?: {
-      id: number;
-      nombre: string;
-      tipo: 'ingreso' | 'egreso';
-    };
-    descripcion: string;
-    valor: number;
-    numero_factura: string | null;
-    user_id: string;
-    created_at: string;
-    tipo?: 'ingreso' | 'egreso';
-  }
-
-  // Función para determinar si un movimiento es ingreso o egreso
-  const determinarTipo = (nombreMovimiento?: string): 'ingreso' | 'egreso' => {
-    if (!nombreMovimiento) return 'egreso';
-    
-    const nombre = nombreMovimiento.toLowerCase();
-    if (nombre.includes('ingreso') || nombre.startsWith('ing')) {
-      return 'ingreso';
-    }
-    if (nombre.includes('egreso') || nombre.startsWith('egr')) {
-      return 'egreso';
-    }
-    
-    const tipoEnBD = tiposMovimiento.find(t => t.nombre === nombreMovimiento)?.tipo;
-    return tipoEnBD === 'ingreso' ? 'ingreso' : 'egreso';
-  };
-
-  // Cargar tipos de movimiento filtrados por tipo seleccionado
-  useEffect(() => {
-    const cargarTiposMovimiento = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { data, error } = await supabase
-          .from('tipos_movimiento')
-          .select('id, nombre, activo, tipo')
-          .eq('activo', true)
-          .eq('tipo', tipoMovimiento)
-          .order('nombre', { ascending: true });
-    
-        if (error) throw error;
-    
-        if (!data || data.length === 0) {
-          setTiposMovimiento([]);
-          setTipoMovimientoId(null);
-          
-          // Versión segura que funciona con cualquier librería
-          const warningMessage = `No hay categorías ${tipoMovimiento} disponibles`;
-          if (typeof toast === 'function') {
-            if (toast.warning) {
-              toast.warning(warningMessage); // Para react-toastify
-            } else {
-              toast(warningMessage, { // Para react-hot-toast
-                icon: '⚠️',
-                style: { background: '#fff3cd', color: '#856404' }
-              });
-            }
-          }
-          return;
-        }
-    
-        setTiposMovimiento(data);
-        setTipoMovimientoId(data[0].id);
-        
-      } catch (error) {
-        console.error('Error:', error);
-        const errorMessage = `Error al cargar tipos: ${error.message}`;
-        if (typeof toast === 'function') {
-          if (toast.error) {
-            toast.error(errorMessage);
-          } else {
-            toast(errorMessage, { 
-              icon: '❌',
-              style: { background: '#f8d7da', color: '#721c24' }
-            });
-          }
-        }
-      } finally {
-        setIsLoading(false);
+  // Función para formatear el valor según el tipo de movimiento
+  const formatValor = (valor: number, tipo: 'Ingreso' | 'Egreso' | 'Ajuste') => {
+    if (tipo === 'Ingreso') {
+      return { display: `+${formatMoneda(valor)}`, color: 'text-green-600' };
+    } else if (tipo === 'Egreso') {
+      return { display: `-${formatMoneda(Math.abs(valor))}`, color: 'text-red-600' };
+    } else { // Ajuste
+      if (valor < 0) {
+        return { display: `${formatMoneda(valor)}`, color: 'text-red-600' };
+      } else {
+        return { display: `+${formatMoneda(valor)}`, color: 'text-green-600' };
       }
-    };
-  
-    cargarTiposMovimiento();
-  }, [tipoMovimiento]);
+    }
+  };
 
   // Formatear número en soles
   const formatMoneda = (num: number) => {
@@ -563,43 +787,63 @@ function MiCaja({ userId }: { userId: string }) {
     }).format(num).replace('PEN', 'S/');
   };
 
-  // Preparar datos para el gráfico
-  const prepararDatosGrafico = (registros: RegistroCaja[]) => {
-    // Filtrar y procesar ingresos
-    const ingresos = registros.filter(r => determinarTipo(r.tipo_movimiento?.nombre) === 'ingreso');
-    const categoriasIngresos = ingresos.reduce((acc, registro) => {
-      const categoria = registro.tipo_movimiento?.nombre || 'Otros ingresos';
-      acc[categoria] = (acc[categoria] || 0) + registro.valor;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Filtrar y procesar egresos
-    const egresos = registros.filter(r => determinarTipo(r.tipo_movimiento?.nombre) === 'egreso');
-    const categoriasEgresos = egresos.reduce((acc, registro) => {
-      const categoria = registro.tipo_movimiento?.nombre || 'Otros egresos';
-      acc[categoria] = (acc[categoria] || 0) + registro.valor;
-      return acc;
-    }, {} as Record<string, number>);
-
+  // Formatear fecha y hora
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
     return {
-      ingresos: {
-        labels: Object.keys(categoriasIngresos),
-        data: Object.values(categoriasIngresos),
-        colors: ['#4CAF50', '#81C784', '#A5D6A7', '#C8E6C9']
-      },
-      egresos: {
-        labels: Object.keys(categoriasEgresos),
-        data: Object.values(categoriasEgresos),
-        colors: ['#F44336', '#E57373', '#EF9A9A', '#FFCDD2']
-      }
+      fecha: date.toLocaleDateString('es-ES'),
+      hora: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
     };
   };
+
+  // Cargar tipos de movimiento
+  useEffect(() => {
+    const cargarTiposMovimiento = async () => {
+      try {
+        setIsLoading(true);
+        let query = supabase
+          .from('tipos_movimiento')
+          .select('*')
+          .eq('activo', true);
+
+        if (tipoMovimiento === 'Ingreso' || tipoMovimiento === 'Egreso' || tipoMovimiento === 'Ajuste') {
+          query = query.eq('tipo', tipoMovimiento);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+
+        setTiposMovimiento(data || []);
+        setTipoMovimientoId(data?.[0]?.id || null);
+      } catch (error) {
+        console.error('Error:', error);
+        toast.error('Error al cargar tipos de movimiento');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    cargarTiposMovimiento();
+  }, [tipoMovimiento]);
+   useEffect(() => {
+    const cargarMedicos = async () => {
+      try {
+        const { data, error } = await supabase.from('medicos').select('id, nombre');
+        if (error) throw error;
+        setMedicos(data || []);
+      } catch (error) {
+        console.error('Error al cargar médicos:', error);
+        toast.error('Error al cargar lista de médicos');
+      }
+    };
+    cargarMedicos();
+  }, []);
 
   // Cargar registros y calcular balances
   const cargarRegistros = async (fechaSeleccionada: string) => {
     setIsLoading(true);
     try {
-      // Obtener registros con los tipos de movimiento relacionados
       const { data: registrosData, error: registrosError } = await supabase
         .from('registros_caja')
         .select(`
@@ -611,7 +855,8 @@ function MiCaja({ userId }: { userId: string }) {
           numero_factura,
           user_id,
           created_at,
-          tipos_movimiento:tipos_movimiento(nombre, tipo)
+          tipos_movimiento (id, nombre, tipo),
+          users:user_id(nombre)
         `)
         .eq('user_id', userId)
         .eq('fecha', fechaSeleccionada)
@@ -619,19 +864,17 @@ function MiCaja({ userId }: { userId: string }) {
 
       if (registrosError) throw registrosError;
 
-      // Mapear los datos para incluir el tipo_movimiento completo
       const registrosCompletos = registrosData?.map(registro => ({
         ...registro,
         tipo_movimiento: registro.tipos_movimiento,
-        tipo: determinarTipo(registro.tipos_movimiento?.nombre)
+        usuario: registro.users
       })) || [];
 
       setRegistros(registrosCompletos);
       setChartData(prepararDatosGrafico(registrosCompletos));
 
-      // Cálculo del total diario
       const totalDia = registrosCompletos.reduce((sum, registro) => {
-        return registro.tipo === 'ingreso' ? sum + registro.valor : sum - registro.valor;
+        return registro.tipo_movimiento?.tipo === 'Ingreso' ? sum + registro.valor : sum - Math.abs(registro.valor);
       }, 0);
       setTotalDia(totalDia);
 
@@ -643,11 +886,76 @@ function MiCaja({ userId }: { userId: string }) {
     }
   };
 
+  // Preparar datos para el gráfico
+const prepararDatosGrafico = (registros: RegistroCaja[]) => {
+  // 1. Gráfico de Ingresos por categoría (incluye ajustes positivos)
+  const ingresos = registros.filter(r => 
+    r.tipo_movimiento?.tipo === 'Ingreso' || 
+    (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor >= 0)
+  );
+  
+  const categoriasIngresos = ingresos.reduce((acc, registro) => {
+    const categoria = registro.tipo_movimiento?.nombre || 'Otros ingresos';
+    acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // 2. Gráfico de Egresos por categoría (incluye ajustes negativos)
+  const egresos = registros.filter(r => 
+    r.tipo_movimiento?.tipo === 'Egreso' || 
+    (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor < 0)
+  );
+  
+  const categoriasEgresos = egresos.reduce((acc, registro) => {
+    const categoria = registro.tipo_movimiento?.nombre || 'Otros egresos';
+    acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // 3. Gráfico de distribución general (Ingresos vs Egresos)
+  const totalIngresos = Object.values(categoriasIngresos).reduce((a, b) => a + b, 0);
+  const totalEgresos = Object.values(categoriasEgresos).reduce((a, b) => a + b, 0);
+
+  return {
+    ingresosPorCategoria: {
+      labels: Object.keys(categoriasIngresos),
+      datasets: [{
+        data: Object.values(categoriasIngresos),
+        backgroundColor: [
+          '#4CAF50', '#81C784', '#A5D6A7', '#C8E6C9',
+          '#388E3C', '#66BB6A', '#43A047', '#2E7D32'
+        ],
+        borderWidth: 1
+      }]
+    },
+    egresosPorCategoria: {
+      labels: Object.keys(categoriasEgresos),
+      datasets: [{
+        data: Object.values(categoriasEgresos),
+        backgroundColor: [
+          '#F44336', '#E57373', '#EF9A9A', '#FFCDD2',
+          '#D32F2F', '#F44336', '#E53935', '#C62828'
+        ],
+        borderWidth: 1
+      }]
+    },
+    distribucionGeneral: {
+      labels: ['Ingresos', 'Egresos'],
+      datasets: [{
+        data: [totalIngresos, totalEgresos],
+        backgroundColor: [colorPrimary, colorAccent],
+        borderColor: [colorPrimaryDark, '#E68A00'],
+        borderWidth: 1
+      }]
+    }
+  };
+};
+  
+
   // Cargar historial
   const cargarHistorial = async () => {
     try {
       setIsLoading(true);
-      // Obtener registros con los tipos de movimiento relacionados
       const { data: registrosData, error: registrosError } = await supabase
         .from('registros_caja')
         .select(`
@@ -658,62 +966,43 @@ function MiCaja({ userId }: { userId: string }) {
           valor,
           numero_factura,
           created_at,
-          tipos_movimiento:tipos_movimiento(nombre, tipo)
+          medico_id,
+          forma_pago,
+          tipos_movimiento (id, nombre, tipo),
+          users:user_id(nombre)
         `)
         .eq('user_id', userId)
         .order('fecha', { ascending: false });
-
       if (registrosError) throw registrosError;
 
-      if (!registrosData) {
-        setHistorialFiltrado([]);
-        return;
-      }
-
-      // Organizar datos por año y mes
       const historialPorAno: Record<number, Record<number, RegistroCaja[]>> = {};
-
       registrosData.forEach(registro => {
         const fecha = new Date(registro.fecha);
         const ano = fecha.getFullYear();
         const mes = fecha.getMonth() + 1;
-
-        if (!historialPorAno[ano]) {
-          historialPorAno[ano] = {};
-        }
-
-        if (!historialPorAno[ano][mes]) {
-          historialPorAno[ano][mes] = [];
-        }
-
+        if (!historialPorAno[ano]) historialPorAno[ano] = {};
+        if (!historialPorAno[ano][mes]) historialPorAno[ano][mes] = [];
         historialPorAno[ano][mes].push({
           ...registro,
           tipo_movimiento: registro.tipos_movimiento,
-          tipo: determinarTipo(registro.tipos_movimiento?.nombre)
+          usuario: registro.users
         });
       });
 
-      // Convertir a la estructura esperada
-      const historialFormateado = Object.entries(historialPorAno).map(([anoStr, meses]) => {
-        const ano = parseInt(anoStr);
-        return {
-          ano,
-          meses: Object.entries(meses).map(([mesStr, registros]) => ({
-            mes: parseInt(mesStr),
-            registros
-          }))
-        };
-      });
+      const historialFormateado = Object.entries(historialPorAno).map(([anoStr, meses]) => ({
+        ano: parseInt(anoStr),
+        meses: Object.entries(meses).map(([mesStr, registros]) => ({
+          mes: parseInt(mesStr),
+          registros
+        }))
+      }));
 
       setHistorialFiltrado(historialFormateado);
-
-      // Calcular balance mensual
       const balance = registrosData.reduce((sum, reg) => {
-        const tipo = determinarTipo(reg.tipos_movimiento?.nombre);
-        return tipo === 'ingreso' ? sum + reg.valor : sum - reg.valor;
+        const tipo = reg.tipo_movimiento?.tipo;
+        return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
       }, 0);
       setBalanceMes(balance);
-
     } catch (error) {
       console.error('Error cargando historial:', error);
       toast.error('Error al cargar historial');
@@ -721,6 +1010,14 @@ function MiCaja({ userId }: { userId: string }) {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (userId && fecha) {
+      cargarRegistros(fecha);
+      if (historialVisible) cargarHistorial();
+    }
+  }, [userId, fecha, historialVisible]);
+
 
   useEffect(() => {
     if (userId && fecha) {
@@ -737,26 +1034,32 @@ function MiCaja({ userId }: { userId: string }) {
     toast.error('Descripción y valor son requeridos');
     return;
   }
-
   if (!tipoMovimientoId) {
     toast.error('Debe seleccionar una categoría');
     return;
   }
 
-  const valorNumerico = parseFloat(valor);
+  // Conversión y validación del valor
+  let valorNumerico = parseFloat(valor);
   if (isNaN(valorNumerico)) {
     toast.error('El valor debe ser un número');
     return;
   }
 
+  // Lógica de ingreso/egreso
+  const tipoMovimientoSeleccionado = tiposMovimiento.find(t => t.id === tipoMovimientoId)?.tipo;
+  if (tipoMovimientoSeleccionado === 'Ingreso' && valorNumerico < 0) {
+    toast.error('Los ingresos deben ser valores positivos');
+    return;
+  }
+  if (tipoMovimientoSeleccionado === 'Egreso') {
+    valorNumerico = -Math.abs(valorNumerico);
+  }
+
+  // Insertar registro
   setIsLoading(true);
   try {
-    // Obtener la sesión de manera más simple
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) throw new Error('Usuario no autenticado');
-
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('registros_caja')
       .insert([{
         fecha,
@@ -764,20 +1067,24 @@ function MiCaja({ userId }: { userId: string }) {
         descripcion,
         valor: valorNumerico,
         numero_factura: numeroFactura || null,
-        user_id: session.user.id
-      }])
-      .select();
+        user_id: userId,
+        medico_id: medicoId,  // ← Nombre correcto de la columna
+        forma_pago: formaPago
+      }]);
 
     if (error) throw error;
-
+    
     toast.success('Registro agregado correctamente');
+    // Resetear formulario
     setDescripcion('');
     setValor('');
     setNumeroFactura('');
+    setMedicoId(null);  // Limpiar selección de médico
+    // Recargar registros
     cargarRegistros(fecha);
   } catch (error: any) {
-    console.error('Error al agregar registro:', error);
-    toast.error(error.message || 'Error al agregar registro');
+    console.error('Error agregando registro:', error);
+    toast.error(`Error al agregar registro: ${error.message}`);
   } finally {
     setIsLoading(false);
   }
@@ -790,216 +1097,265 @@ function MiCaja({ userId }: { userId: string }) {
       const { error } = await supabase
         .from('registros_caja')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) throw error;
 
       toast.success('Registro eliminado correctamente');
       cargarRegistros(fecha);
-    } catch (error) {
-      console.error('Error eliminando registro:', error);
+    } catch (error: any) {
+      console.error('Error eliminando registro:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      });
       toast.error('Error al eliminar registro');
     }
   };
 
-  // Formatear fecha y hora
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return {
-      fecha: date.toLocaleDateString('es-ES'),
-      hora: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-    };
+  // Estilos actualizados con la nueva paleta de colores
+  const styles = {
+    header: {
+      backgroundColor: colorPrimary,
+      color: 'white',
+    },
+    buttonPrimary: {
+      backgroundColor: colorPrimary,
+      color: 'white',
+    },
+    buttonSecondary: {
+      backgroundColor: colorSecondary,
+      color: colorPrimaryDark,
+    },
+    card: {
+      borderColor: colorPrimaryLight,
+    },
+    badgeIngreso: {
+      backgroundColor: '#E6F7EE',
+      color: '#1B705B',
+    },
+    badgeEgreso: {
+      backgroundColor: '#FEE9E9',
+      color: '#D14343',
+    },
+    badgeAjuste: {
+      backgroundColor: '#FEF6E6',
+      color: '#E68A00',
+    }
   };
 
   return (
-    <div className="rounded-xl shadow-lg p-6" style={{ 
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      border: `1px solid ${colors.primary[100]}`
-    }}>
-      <h2 className="text-xl font-semibold mb-6" style={{ color: colors.primary[700] }}>
-        Registro de caja diaria.
+    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
+      <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6 p-4 rounded-lg" style={styles.header}>
+        Registro de Caja Diaria
       </h2>
-  
-      <div className="grid gap-6">
+
+      <div className="grid gap-4 sm:gap-6">
         {/* Filtros y resumen */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex items-center space-x-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Fecha:</label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                className="rounded-lg shadow-sm focus:ring-2 p-2 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-              />
-            </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+          <div className="w-full sm:w-auto">
+            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Fecha:</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+              style={{ borderColor: colorPrimaryLight }}
+            />
           </div>
           
           <button
             onClick={() => setHistorialVisible(!historialVisible)}
-            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors"
+            className="w-full sm:w-auto px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center"
             style={{
-              backgroundColor: colors.primary[50],
-              color: colors.primary[600],
-              border: `1px solid ${colors.primary[100]}`,
-              hoverBackgroundColor: colors.primary[100]
+              backgroundColor: historialVisible ? colorPrimaryDark : colorSecondary,
+              color: historialVisible ? 'white' : colorPrimaryDark
             }}
           >
             {historialVisible ? (
               <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke={colors.primary[600]} viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
                 Ocultar Historial
               </>
             ) : (
               <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke={colors.primary[600]} viewBox="0 0 24 24">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Ver Historial Completo
+                Ver Historial
               </>
             )}
           </button>
         </div>
-  
+
         {/* Formulario */}
-        <div className="p-4 rounded-lg" style={{ backgroundColor: colors.primary[50] }}>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
-            {/* Selector de Tipo */}
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Tipo</label>
-              <select
-                value={tipoMovimiento}
-                onChange={(e) => setTipoMovimiento(e.target.value as 'ingreso' | 'egreso')}
-                className="block w-full rounded-lg shadow-sm focus:ring-2 p-2.5 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-              >
-                <option value="ingreso">Ingreso</option>
-                <option value="egreso">Egreso</option>
-              </select>
-            </div>
-  
-            {/* Selector de Categoría */}
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Categoría</label>
-              <select
-                value={tipoMovimientoId || ''}
-                onChange={(e) => setTipoMovimientoId(Number(e.target.value))}
-                className="block w-full rounded-lg shadow-sm focus:ring-2 p-2.5 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-                disabled={tiposMovimiento.length === 0 || isLoading}
-              >
-                {tiposMovimiento.length === 0 ? (
-                  <option value="">No hay categorías disponibles</option>
-                ) : (
-                  <>
-                    <option value="">Seleccione una categoría</option>
-                    {tiposMovimiento.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.nombre}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
-            </div>
-            
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Descripción</label>
-              <input
-                type="text"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Descripción del movimiento"
-                className="block w-full rounded-lg shadow-sm focus:ring-2 p-2.5 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Valor</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                placeholder="0.00"
-                className="block w-full rounded-lg shadow-sm focus:ring-2 p-2.5 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Nº Factura</label>
-              <input
-                type="text"
-                value={numeroFactura}
-                onChange={(e) => setNumeroFactura(e.target.value)}
-                placeholder="(Opcional)"
-                className="block w-full rounded-lg shadow-sm focus:ring-2 p-2.5 border text-sm"
-                style={{
-                  borderColor: colors.primary[200],
-                  focusBorderColor: colors.primary[500],
-                  focusRingColor: colors.primary[100]
-                }}
-              />
-            </div>
-          </div>
-          
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={agregarRegistro}
-              disabled={isLoading || !descripcion || !valor || !tipoMovimientoId}
-              className="px-4 py-2 rounded-lg font-medium flex items-center transition-colors disabled:opacity-50"
-              style={{
-                backgroundColor: colors.primary[500],
-                color: 'white',
-                hoverBackgroundColor: colors.primary[600],
-                disabledOpacity: 0.5
-              }}
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Procesando...
-                </>
-              ) : 'Agregar Registro'}
-            </button>
-          </div>
-        </div>
-  
+        <div className="p-3 sm:p-4 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 items-end">
+
+    {/* Tipo */}
+    <div className="md:col-span-1">
+      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Tipo</label>
+      <select
+        value={tipoMovimiento}
+        onChange={(e) => setTipoMovimiento(e.target.value as 'Ingreso' | 'Egreso' | 'Ajuste')}
+        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+        style={{ borderColor: colorPrimaryLight }}
+      >
+        <option value="Ingreso">Ingreso</option>
+        <option value="Egreso">Egreso</option>
+        <option value="Ajuste">Ajuste</option>
+      </select>
+    </div>
+
+ {/* Categoría */}
+<div className="md:col-span-1">
+  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
+    Categoría
+  </label>
+  <select
+    value={tipoMovimientoId || ''}
+    onChange={(e) => setTipoMovimientoId(Number(e.target.value))}
+    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+    disabled={tiposMovimiento.length === 0 || isLoading}
+  >
+    {isLoading ? (
+      <option value="">Cargando categorías...</option>
+    ) : tiposMovimiento.length === 0 ? (
+      <option value="">No hay categorías disponibles</option>
+    ) : (
+      <>
+        <option value="">Seleccione categoría</option>
+        {tiposMovimiento.map((t) => (
+          <option key={t.id} value={t.id}>{t.nombre}</option>
+        ))}
+      </>
+    )}
+  </select>
+</div>
+
+{/* Médico */}
+<div className="md:col-span-1">
+  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
+    Médico
+  </label>
+  <select
+    value={medicoId || ''}
+    onChange={(e) => setMedicoId(e.target.value || null)}
+    className="block w-full  min-w-[450px] rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+    disabled={medicos.length === 0 || isLoading}
+  >
+    {isLoading ? (
+      <option value="">Cargando médicos...</option>
+    ) : medicos.length === 0 ? (
+      <option value="">No hay médicos disponibles</option>
+    ) : (
+      <>
+        <option value="">Seleccione médico</option>
+        {medicos.map((medico) => (
+          <option key={medico.id} value={medico.id}>
+            {medico.nombre}
+          </option>
+        ))}
+      </>
+    )}
+  </select>
+</div>
+
+    {/* Forma de Pago */}
+    <div className="md:col-span-2">
+      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Forma de Pago</label>
+      <select
+        value={formaPago}
+        onChange={(e) =>
+          setFormaPago(e.target.value as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS')
+        }
+        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+      >
+        <option value="EFECTIVO">Efectivo</option>
+        <option value="TARJETA">Tarjeta</option>
+        <option value="TRANSFERENCIA">Transferencia</option>
+        <option value="YAPE">Yape</option>
+        <option value="PLIN">Plin</option>
+        <option value="OTROS">Otros</option>
+      </select>
+    </div>
+
+    {/* Descripción */}
+    <div className="md:col-span-3">
+      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Descripción</label>
+      <input
+        type="text"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        placeholder="Descripción"
+        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+        style={{ borderColor: colorPrimaryLight }}
+      />
+    </div>
+
+    {/* Valor */}
+    <div className="md:col-span-2">
+      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Valor</label>
+      <input
+        type="number"
+        step="0.01"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        placeholder="0.00"
+        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+        style={{ borderColor: colorPrimaryLight }}
+      />
+    </div>
+
+    {/* Nº Factura */}
+    <div className="md:col-span-1">
+      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nº Factura</label>
+      <input
+        type="text"
+        value={numeroFactura}
+        onChange={(e) => setNumeroFactura(e.target.value)}
+        placeholder="(Opcional)"
+        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+        style={{ borderColor: colorPrimaryLight }}
+      />
+    </div>
+  </div>
+
+  <div className="mt-4 flex justify-end">
+    <button
+      onClick={agregarRegistro}
+      disabled={isLoading || !descripcion || !valor || !tipoMovimientoId}
+      className="px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center"
+      style={{
+        backgroundColor: colorPrimary,
+        color: 'white',
+        opacity: isLoading || !descripcion || !valor || !tipoMovimientoId ? 0.5 : 1
+      }}
+    >
+      {isLoading ? (
+        <>
+          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-15" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="9"></circle>
+            <path className="opacity-15" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Procesando...
+        </>
+      ) : 'Agregar Registro'}
+    </button>
+  </div>
+</div>
+
+
+
         {/* Registros del día */}
         <div>
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-medium" style={{ color: colors.primary[700] }}>Movimientos del día</h3>
-            <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colors.primary[50] }}>
-              <p className="text-sm font-medium" style={{ color: colors.primary[600] }}>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+            <h3 className="font-medium" style={{ color: colorPrimaryDark }}>Movimientos del día</h3>
+            <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+              <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
                 Balance del día: 
                 <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatMoneda(totalDia)}
@@ -1007,83 +1363,79 @@ function MiCaja({ userId }: { userId: string }) {
               </p>
             </div>
           </div>
-  
+
           {isLoading && registros.length === 0 ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8" style={{ 
-                borderTopColor: colors.primary[500],
-                borderBottomColor: colors.primary[500]
-              }}></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
           ) : registros.length === 0 ? (
-            <p className="text-sm text-center py-4" style={{ color: colors.neutral[500] }}>No hay registros para esta fecha</p>
+            <p className="text-sm text-gray-500 text-center py-4">No hay registros para esta fecha</p>
           ) : (
-            <div className="overflow-x-auto border rounded-lg" style={{ borderColor: colors.primary[100] }}>
-              <table className="min-w-full divide-y" style={{ divideColor: colors.primary[100] }}>
-                <thead style={{ backgroundColor: colors.primary[50] }}>
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Hora</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Tipo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Categoría</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Valor</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Factura</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Acciones</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
+                   
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Usuario</th>
+                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ 
-                  backgroundColor: 'white',
-                  divideColor: colors.primary[100]
-                }}>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {registros.map((registro) => {
-                    const esIngreso = determinarTipo(registro.tipo_movimiento?.nombre) === 'ingreso';
+                    const tipo = registro.tipo_movimiento?.tipo;
+                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
                     const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
                     
                     return (
                       <tr key={registro.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[600] }}>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                           {fechaFormateada}
                         </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[600] }}>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                           {hora}
                         </td>
-                        <td className="px-4 py-2 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            esIngreso ? 
-                              'bg-green-100 text-green-800' : 
-                              'bg-red-100 text-red-800'
+                            tipo === 'Ingreso' 
+                              ? 'bg-green-100 text-green-800' 
+                              : tipo === 'Egreso' 
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
                           }`}>
-                            {esIngreso ? 'INGRESO' : 'EGRESO'}
+                            {tipo || 'DESC'}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-sm" style={{ color: colors.primary[800] }}>
+                        <td className="px-3 py-2 text-sm text-gray-900">
                           {registro.tipo_movimiento?.nombre || 'Desconocido'}
                           {registro.descripcion && (
-                            <p className="text-xs truncate max-w-xs" style={{ color: colors.neutral[500] }}>{registro.descripcion}</p>
+                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
                           )}
                         </td>
-                        <td className={`px-4 py-2 whitespace-nowrap text-sm font-medium ${
-                          esIngreso ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {esIngreso ? '+' : '-'}{formatMoneda(registro.valor)}
+                        <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                          {valorDisplay}
                         </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[500] }}>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                           {registro.numero_factura || '-'}
                         </td>
-                        <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                          {registro.usuario?.nombre || 'Desconocido'}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
                           <button
                             onClick={() => eliminarRegistro(registro.id)}
-                            className="flex items-center transition-colors"
-                            style={{
-                              color: colors.error[500],
-                              hoverColor: colors.error[700]
-                            }}
+                            className="text-red-600 hover:text-red-900 flex items-center"
                             title="Eliminar registro"
                           >
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                            Eliminar
+                            <span className="sr-only sm:not-sr-only">Eliminar</span>
                           </button>
                         </td>
                       </tr>
@@ -1094,97 +1446,128 @@ function MiCaja({ userId }: { userId: string }) {
             </div>
           )}
         </div>
-  
+
         {/* Gráfico de distribución */}
-        {chartData && (
-          <div className="p-4 border rounded-lg" style={{ 
-            backgroundColor: 'white',
-            borderColor: colors.primary[100]
-          }}>
-            <h3 className="font-medium mb-3 text-center" style={{ color: colors.primary[700] }}>Distribución por Categoría</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Gráfico de ingresos */}
-              {chartData.ingresos.data.length > 0 && (
-                <div className="h-64">
-                  <h4 className="text-center text-sm font-medium mb-2" style={{ color: colors.success[600] }}>Ingresos</h4>
-                  <Pie
-                    data={{
-                      labels: chartData.ingresos.labels,
-                      datasets: [{
-                        data: chartData.ingresos.data,
-                        backgroundColor: [
-                          colors.success[400],
-                          colors.success[300],
-                          colors.success[200],
-                          colors.success[100]
-                        ],
-                        borderWidth: 1
-                      }]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                          labels: {
-                            padding: 10,
-                            usePointStyle: true,
-                            font: { size: 10 }
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              )}
-              
-              {/* Gráfico de egresos */}
-              {chartData.egresos.data.length > 0 && (
-                <div className="h-64">
-                  <h4 className="text-center text-sm font-medium mb-2" style={{ color: colors.error[600] }}>Egresos</h4>
-                  <Pie
-                    data={{
-                      labels: chartData.egresos.labels,
-                      datasets: [{
-                        data: chartData.egresos.data,
-                        backgroundColor: [
-                          colors.error[400],
-                          colors.error[300],
-                          colors.error[200],
-                          colors.error[100]
-                        ],
-                        borderWidth: 1
-                      }]
-                    }}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom',
-                          labels: {
-                            padding: 10,
-                            usePointStyle: true,
-                            font: { size: 10 }
-                          }
-                        }
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-  
+{chartData && (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {/* Gráfico de Ingresos por categoría - Más pequeño */}
+    <div className="bg-white p-3 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
+        Ingresos por Categoría
+      </h3>
+      <div className="h-48"> {/* Altura reducida */}
+        <Pie
+          data={chartData.ingresosPorCategoria}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom', // Cambiado a bottom para ahorrar espacio
+                labels: {
+                  boxWidth: 10, // Tamaño reducido de los ítems de leyenda
+                  font: {
+                    size: 9 // Tamaño de fuente reducido
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
+                  }
+                }
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+
+    {/* Gráfico de Egresos por categoría - Más pequeño */}
+    <div className="bg-white p-3 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
+        Egresos por Categoría
+      </h3>
+      <div className="h-48"> {/* Altura reducida */}
+        <Pie
+          data={chartData.egresosPorCategoria}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 10,
+                  font: {
+                    size: 9
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
+                  }
+                }
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+
+    {/* Gráfico de distribución general - Más pequeño */}
+   <div className="bg-white p-3 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
+        Ingresos vs Egresos
+      </h3>
+      <div className="h-48">
+        <Pie
+          data={{
+            ...chartData.distribucionGeneral,
+            datasets: [{
+              ...chartData.distribucionGeneral.datasets[0],
+               backgroundColor: ['#81C784', '#E57373'],// Verde para ingresos, rojo para egresos
+              borderColor: ['#388E3C', '#D32F2F']     // Verde oscuro y rojo oscuro para bordes
+            }]
+          }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  boxWidth: 10,
+                  font: {
+                    size: 9
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
+                  }
+                }
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)}
+
         {/* Historial */}
         {historialVisible && (
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: colors.primary[700] }}>Historial de Movimientos</h3>
-              <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colors.primary[50] }}>
-                <p className="text-sm font-medium" style={{ color: colors.primary[600] }}>
+          <div className="mt-6 sm:mt-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
+              <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Historial de Movimientos</h3>
+              <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+                <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
                   Balance del mes: 
                   <span className={`ml-2 text-lg ${balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatMoneda(balanceMes)}
@@ -1194,33 +1577,29 @@ function MiCaja({ userId }: { userId: string }) {
             </div>
             
             {historialFiltrado.length === 0 ? (
-              <p className="text-sm" style={{ color: colors.neutral[500] }}>No hay registros históricos</p>
+              <p className="text-sm text-gray-500">No hay registros históricos</p>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8">
                 {historialFiltrado.map((anoData) => (
-                  <div key={anoData.ano} className="border rounded-lg overflow-hidden" style={{ borderColor: colors.primary[100] }}>
-                    <div className="px-4 py-2 border-b" style={{ 
-                      backgroundColor: colors.primary[50],
-                      borderColor: colors.primary[100]
-                    }}>
-                      <h4 className="font-medium" style={{ color: colors.primary[700] }}>{anoData.ano}</h4>
+                  <div key={anoData.ano} className="border rounded-lg overflow-hidden" style={styles.card}>
+                    <div className="px-4 py-2 border-b" style={{ backgroundColor: colorSecondary }}>
+                      <h4 className="font-medium" style={{ color: colorPrimaryDark }}>{anoData.ano}</h4>
                     </div>
                     
-                    <div className="divide-y" style={{ divideColor: colors.primary[100] }}>
+                    <div className="divide-y divide-gray-200">
                       {anoData.meses.map((mesData) => {
                         const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
                           .toLocaleString('es-ES', { month: 'long' });
                         
                         const balanceMes = mesData.registros.reduce((sum, reg) => {
-                          return reg.tipo === 'ingreso' ? 
-                            sum + reg.valor : 
-                            sum - reg.valor;
+                          const tipo = reg.tipo_movimiento?.tipo;
+                          return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
                         }, 0);
                         
                         return (
                           <div key={`${anoData.ano}-${mesData.mes}`} className="bg-white">
-                            <div className="px-4 py-3 flex justify-between items-center" style={{ backgroundColor: colors.primary[50] }}>
-                              <span className="font-medium capitalize" style={{ color: colors.primary[700] }}>
+                            <div className="px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0" style={{ backgroundColor: colorSecondary }}>
+                              <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
                                 {nombreMes}
                               </span>
                               <span className={`text-sm font-medium ${
@@ -1231,54 +1610,52 @@ function MiCaja({ userId }: { userId: string }) {
                             </div>
                             
                             <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y" style={{ divideColor: colors.primary[100] }}>
-                                <thead style={{ backgroundColor: colors.primary[50] }}>
+                              <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
                                   <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Fecha</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Hora</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Tipo</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Categoría</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Valor</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>Factura</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y" style={{ 
-                                  backgroundColor: 'white',
-                                  divideColor: colors.primary[100]
-                                }}>
+                                <tbody className="bg-white divide-y divide-gray-200">
                                   {mesData.registros.map((registro) => {
-                                    const esIngreso = determinarTipo(registro.tipo_movimiento?.nombre) === 'ingreso';
+                                    const tipo = registro.tipo_movimiento?.tipo;
+                                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
                                     const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
                                     
                                     return (
                                       <tr key={registro.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[600] }}>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                           {fechaFormateada}
                                         </td>
-                                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[600] }}>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                           {hora}
                                         </td>
-                                        <td className="px-4 py-2 whitespace-nowrap">
+                                        <td className="px-3 py-2 whitespace-nowrap">
                                           <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                            esIngreso ? 
-                                              'bg-green-100 text-green-800' : 
-                                              'bg-red-100 text-red-800'
+                                            tipo === 'Ingreso' 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : tipo === 'Egreso' 
+                                                ? 'bg-red-100 text-red-800'
+                                                : 'bg-yellow-100 text-yellow-800'
                                           }`}>
-                                            {esIngreso ? 'INGRESO' : 'EGRESO'}
+                                            {tipo || 'DESC'}
                                           </span>
                                         </td>
-                                        <td className="px-4 py-2 text-sm" style={{ color: colors.primary[800] }}>
+                                        <td className="px-3 py-2 text-sm text-gray-900">
                                           {registro.tipo_movimiento?.nombre || 'Desconocido'}
                                           {registro.descripcion && (
-                                            <p className="text-xs truncate max-w-xs" style={{ color: colors.neutral[500] }}>{registro.descripcion}</p>
+                                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
                                           )}
                                         </td>
-                                        <td className={`px-4 py-2 whitespace-nowrap text-sm font-medium ${
-                                          esIngreso ? 'text-green-600' : 'text-red-600'
-                                        }`}>
-                                          {esIngreso ? '+' : '-'}{formatMoneda(registro.valor)}
+                                        <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                                          {valorDisplay}
                                         </td>
-                                        <td className="px-4 py-2 whitespace-nowrap text-sm" style={{ color: colors.neutral[500] }}>
+                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                           {registro.numero_factura || '-'}
                                         </td>
                                       </tr>
@@ -1368,7 +1745,7 @@ function MisBoletas({ userId }: MisBoletasProps) {
           No hay historias clínicas registradas.
         </p>
       ) : (
-        <div className="overflow-x-auto border rounded-lg" style={{ borderColor: colors.primary[100] }}>
+        <div className="overflow-x-auto rounded-lg" style={{ borderColor: colors.primary[100] }}>
           <table className="min-w-full divide-y" style={{ divideColor: colors.primary[100] }}>
             <thead style={{ backgroundColor: colors.primary[50] }}>
               <tr>
@@ -1424,839 +1801,7 @@ function MisBoletas({ userId }: MisBoletasProps) {
   );
 }
 
-function GestionBoletas() {
-  // Estado para a lista de usuários com tipagem explícita
-  const [usuarios, setUsuarios] = useState<Array<{
-    id: string;
-    nombre: string;
-    apellido: string;
-   
-  }>>([]);
 
-  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string | null>(null);
-  const [ano, setAno] = useState(new Date().getFullYear());
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [archivo, setArchivo] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [boletasExistentes, setBoletasExistentes] = useState<BoletaUsuario[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-
-  // Carregar usuários ativos
-  useEffect(() => {
-    const cargarUsuarios = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('id, nombre, apellido')
-          .eq('activo', true)
-          .order('nombre', { ascending: true });
-
-        if (error) throw error;
-
-        if (data) {
-          setUsuarios(data);
-          if (data.length > 0) {
-            setUsuarioSeleccionado(data[0].id);
-          }
-        }
-      } catch (error) {
-        console.error('Error cargando usuarios:', error);
-        toast.error('Error al cargar la lista de usuarios');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    cargarUsuarios();
-  }, []);
-
-  // Carregar boletas do usuário selecionado
-  useEffect(() => {
-    if (usuarioSeleccionado) {
-      cargarBoletasUsuario();
-    }
-  }, [usuarioSeleccionado]);
-
-  const cargarBoletasUsuario = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('boletas_usuarios')
-        .select('*')
-        .eq('user_id', usuarioSeleccionado)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBoletasExistentes(data || []);
-    } catch (error: any) {
-      console.error('Error cargando boletas:', error);
-      toast.error('Error al cargar boletas: ' + error.message);
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setArchivo(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsUploading(true);
-  
-    try {
-      if (!archivo) {
-        throw new Error("Por favor, selecione um arquivo para upload.");
-      }
-  
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error('No se pudo obtener la información del usuario autenticado');
-      }
-
-      // Verificar se é admin
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (userError || userData?.role !== 'admin') {
-        throw new Error('Solo los administradores pueden subir boletas');
-      }
-
-      const fileExt = archivo.name.split('.').pop();
-      const fileName = `${usuarioSeleccionado}/${ano}-${mes}.${fileExt}`;
-      
-      // Upload do arquivo
-      const { error: uploadError } = await supabase.storage
-        .from('boletas-pago')
-        .upload(fileName, archivo, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('boletas-pago')
-        .getPublicUrl(fileName);
-        
-      // Registrar no banco de dados
-      const { error: insertError } = await supabase
-        .from('boletas_usuarios')
-        .upsert({
-          user_id: usuarioSeleccionado,
-          mes: mes,
-          ano: ano,
-          arquivo_url: publicUrl,
-          uploaded_by: user.id
-        });
-
-      if (insertError) throw insertError;
-
-      toast.success("¡Boleta subida/actualizada correctamente!");
-      setArchivo(null);
-      await cargarBoletasUsuario();
-    } catch (error: any) {
-      console.error('Error en handleSubmit:', error);
-      toast.error(error.message);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDownload = (url: string) => {
-    window.open(url, '_blank');
-  };
-
-  const handleDelete = async (id: string, url: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta boleta?')) return;
-  
-    try {
-      const filePath = url.split('/storage/v1/object/public/boletas-pago/')[1];
-  
-      // Remover do storage
-      const { error: deleteError } = await supabase.storage
-        .from('boletas-pago')
-        .remove([filePath]);
-
-      if (deleteError) throw deleteError;
-
-      // Remover do banco de dados
-      const { error: deleteRecordError } = await supabase
-        .from('boletas_usuarios')
-        .delete()
-        .eq('id', id);
-
-      if (deleteRecordError) throw deleteRecordError;
-
-      toast.success('Boleta eliminada correctamente');
-      await cargarBoletasUsuario();
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error('Error eliminando boleta:', error);
-        toast.error('Error al eliminar la boleta: ' + error.message);
-      } else {
-        console.error('Error desconocido:', error);
-        toast.error('Error desconocido');
-      }
-    }
-  };
-
-  // Estado de loading
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  // Sem usuários disponíveis
-  if (usuarios.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">
-          Gestión de Boletas de Pago
-        </h2>
-        <div className="text-center py-8">
-          <User className="w-12 h-12 mx-auto text-gray-400" />
-          <p className="mt-2 text-gray-500">No hay usuarios activos disponibles</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">
-        Gestión de Boletas de Pago
-      </h2>
-
-      <form onSubmit={handleSubmit} className="space-y-4 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Usuario
-            </label>
-            <select
-              title="Seleccionar usuario"
-              aria-label="Seleccionar usuario"
-              value={usuarioSeleccionado || ''}
-              onChange={(e) => setUsuarioSeleccionado(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm"
-              disabled={isLoading}
-            >
-              {usuarios.map((usuario) => (
-                <option key={usuario.id} value={usuario.id}>
-                  {usuario.nombre} {usuario.apellido} 
-                 
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Año
-            </label>
-            <input
-              type="number"
-              value={ano}
-              onChange={(e) => setAno(Number(e.target.value))}
-              min="2000"
-              aria-label="Año"
-              max="2100"
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mes
-            </label>
-            <select
-              title="Seleccionar mes"
-              aria-label="Seleccionar mes"
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm"
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={m}>
-                  {new Date(2000, m - 1, 1).toLocaleString('es-ES', { month: 'long' })}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Archivo de Boleta (PDF, JPG, PNG)
-          </label>
-          <input
-            type="file"
-            title="Subir archivo de boleta"
-            aria-label="Subir archivo de boleta"
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-md file:border-0
-              file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
-            accept=".pdf,.jpg,.jpeg,.png"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={isUploading || !archivo}
-          className="mt-4 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Upload className="w-5 h-5 mr-2" />
-          {isUploading ? 'Subiendo...' : 'Subir Boleta'}
-        </button>
-      </form>
-
-      <div>
-        <h3 className="text-md font-medium text-gray-900 mb-4">
-          Boletas existentes para este usuario
-        </h3>
-        
-        {boletasExistentes.length === 0 ? (
-          <p className="text-sm text-gray-500">No hay boletas registradas para este usuario.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Año</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mes</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Subida</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {boletasExistentes.map((boleta) => (
-                  <tr key={boleta.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{boleta.ano}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(2000, boleta.mes - 1, 1).toLocaleString('es-ES', { month: 'long' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(boleta.created_at).toLocaleString('es-ES')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDownload(boleta.arquivo_url)}
-                        className="text-blue-600 hover:text-blue-900 mr-4 flex items-center"
-                      >
-                        <Download className="w-4 h-4 mr-1" /> Descargar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(boleta.id, boleta.arquivo_url)}
-                        className="text-red-600 hover:text-red-900 flex items-center"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function GestionDiasLibres() {
-  const [usuarios, setUsuarios] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sedes, setSedes] = useState<  { id: string; nombre: string }[] >([{ id: 'todos', nombre: 'TODOS' }]); 
-  const [sedeSeleccionada, setSedeSeleccionada] = useState('todos');
-  const [todosDiasLibres, setTodosDiasLibres] = useState<DiaLibre[]>([]);
-  const [modoAsignacion, setModoAsignacion] = useState(false);
-  const [usuarioParaAsignar, setUsuarioParaAsignar] = useState('');
-
-  // Cargar datos iniciales
-  useEffect(() => {
-    const cargarDatosIniciales = async () => {
-      setIsLoading(true);
-      try {
-        // 1. Cargar usuarios
-        const { data: usuariosData, error: usuariosError } = await supabase
-          .from('users')
-          .select('id, nombre, apellido')
-          .eq('activo', true)
-          .order('nombre', { ascending: true });
-  
-        if (usuariosError) throw usuariosError;
-  
-        if (usuariosData) {
-          setUsuarios(usuariosData); 
-  
-          // Sedes únicas (com filtro para remover `null`/`undefined`)
-          const sedesUnicas = [...new Set(usuariosData.map(u => u.sede))]
-            .filter((sede): sede is string => !!sede) // Remove valores falsy
-            .map(sede => ({ id: sede, nombre: sede }));
-  
-          setSedes([{ id: 'todos', nombre: 'TODOS' }, ...sedesUnicas]); 
-        }
-  
-        // 2. Cargar días libres
-        await cargarTodosDiasLibres();
-      } catch (error) {
-        console.error('Error cargando datos iniciales:', error);
-        toast.error('Error al cargar datos iniciales: ' + (error instanceof Error ? error.message : String(error)));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    cargarDatosIniciales();
-  }, []);
-
-  // Cargar días libres cuando cambia la sede seleccionada
-  useEffect(() => {
-    if (sedeSeleccionada) {
-      cargarTodosDiasLibres();
-    }
-  }, [sedeSeleccionada]);
-
-  // Función para cargar todos los días libres con información de usuarios
-  const cargarTodosDiasLibres = async () => {
-  try {
-    setIsLoading(true);
-
-    // Obtener el usuario autenticado y su rol
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw new Error('Usuario no autenticado');
-
-    // Obtener el rol del usuario desde la tabla users
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (userError) throw userError;
-
-    const userRole = userData?.role || 'user';
-
-    // Construir la consulta base con el join correcto
-    let query = supabase
-      .from('dias_libres')
-      .select(`
-        id,
-        user_id,
-        fecha,
-        todo_el_dia,
-        users!inner(id, nombre, apellido, sede, area)
-      `);
-
-    // Solo filtrar por user_id si NO es admin
-    if (userRole !== 'admin') {
-      query = query.eq('user_id', user.id);
-    }
-
-    // Aplicar filtro por sede si no es "todos"
-    if (sedeSeleccionada !== 'todos') {
-      query = query.eq('users.sede', sedeSeleccionada);
-    }
-
-    // Ejecutar la consulta ordenada por fecha
-    const { data: diasData, error: diasError } = await query
-      .order('fecha', { ascending: true });
-
-    if (diasError) throw diasError;
-
-    setTodosDiasLibres(diasData || []);
-  } catch (error: unknown) {
-    console.error('Error cargando días libres:', error);
-    toast.error(error instanceof Error ? error.message : 'Ocurrió un error desconocido');
-  } finally {
-    setIsLoading(false);
-  }
-};
-  
-  
-  
-  
-  // Generar color único para cada usuario
-  const generarColorUsuario = (userId: string) => {
-    const hash = userId.split('').reduce((acc, char) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc);
-    }, 0);
-    return `hsl(${Math.abs(hash) % 360}, 70%, 60%)`;
-  };
-
-  // Preparar eventos para el calendario
-  const prepararEventos = () => {
-    return todosDiasLibres.map(dia => {
-      const usuario = dia.users || { nombre: 'Desconocido', apellido: '', sede: 'Sin sede' };
-      return {
-        id: dia.id,
-        title: `${usuario.nombre} ${usuario.apellido} (${usuario.sede})`,
-        start: new Date(dia.fecha),
-        end: new Date(dia.fecha),
-        allDay: true,
-        resource: dia,
-        color: generarColorUsuario(dia.user_id),
-        className: 'evento-dia-libre'
-      };
-    });
-  };
-
-  // Estilo para los eventos del calendario
-  
-  const eventStyleGetter = (event: Event) => {
-    const customEvent = event as { color?: string } & Event;
-    return {
-      style: {
-        backgroundColor: customEvent.color || '#3174ad',
-        borderRadius: '4px',
-        color: 'white',
-        border: '0px',
-        display: 'block',
-        fontSize: '12px',
-        padding: '2px 5px',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }
-    };
-  };
-
-  // Crear leyenda de usuarios con sus colores
-  const crearLeyendaUsuarios = () => {
-    // Versión segura con verificación de tipos
-    const usuariosUnicos = [...new Map(
-      todosDiasLibres
-        .filter((dia): dia is DiaLibre & { users: NonNullable<DiaLibre['users']> } => 
-          !!dia.users
-        )
-        .map(dia => [dia.users.id, dia.users])
-    ).values()];
-  
-    return (
-      <div className="flex flex-wrap gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
-        {usuariosUnicos.map(usuario => (
-          <div key={usuario.id} className="flex items-center">
-            <div 
-              className="w-4 h-4 rounded-full mr-2" 
-              style={{ backgroundColor: generarColorUsuario(usuario.id) }}
-            />
-            <span className="text-sm">
-              {usuario.nombre} {usuario.apellido} ({usuario.sede || 'Sin sede'})
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  // Manejar selección de fecha para asignar día libre
-  const handleDateChange = (date: Date )=> {
-  // Ajustar la fecha para evitar problemas de zona horaria
-  const adjustedDate = new Date(
-    Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
-    )
-  );
-  setSelectedDate(adjustedDate);
-  setModoAsignacion(true);
-};
-
-  // Agregar nuevo día libre
-  const agregarDiaLibre = async () => {
-    if (!usuarioParaAsignar || !selectedDate) {
-      toast.error('Selecciona un usuario y una fecha');
-      return;
-    }
-  
-    setIsSubmitting(true);
-  
-    try {
-      // Crear fecha sin componente de hora y sin ajuste de zona horaria
-      const fechaFormateada = new Date(
-        Date.UTC(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
-          selectedDate.getDate()
-        )
-      ).toISOString().split('T')[0];
-      
-      // Verificar si ya existe un día libre para este usuario en esta fecha
-      const { data: existing, error: existingError } = await supabase
-        .from('dias_libres')
-        .select('id')
-        .eq('user_id', usuarioParaAsignar)
-        .eq('fecha', fechaFormateada)
-        .maybeSingle();
-  
-      if (existingError) throw existingError;
-      if (existing) {
-        toast.error('Este usuario ya tiene un día libre para esta fecha');
-        return;
-      }
-  
-      // Crear nuevo día libre
-      const { error } = await supabase
-        .from('dias_libres')
-        .insert([{
-          user_id: usuarioParaAsignar,
-          fecha: fechaFormateada,
-          todo_el_dia: true
-        }]);
-  
-      if (error) throw error;
-  
-      toast.success('Día libre agregado correctamente');
-      await cargarTodosDiasLibres();
-      setModoAsignacion(false);
-      setUsuarioParaAsignar('');
-    } catch (error) {
-      console.error('Error agregando día libre:', error);
-      toast.error('Error al agregar día libre: ' + error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Eliminar día libre
-  const eliminarDiaLibre = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este día libre?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('dias_libres')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('Día libre eliminado correctamente');
-      await cargarTodosDiasLibres();
-    } catch (error) {
-      console.error('Error eliminando día libre:', error);
-      toast.error('Error al eliminar día libre: ' + error.message);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">
-        Gestión de Días Libres
-      </h2>
-
-      <div className="grid gap-6">
-        {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filtrar por Sede
-            </label>
-            <select
-              value={sedeSeleccionada}
-              onChange={(e) => setSedeSeleccionada(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm"
-              disabled={isLoading}
-            >
-              {sedes.map((sede) => (
-                <option key={sede.id} value={sede.id}>{sede.nombre}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Leyenda de usuarios */}
-        {todosDiasLibres.length > 0 && crearLeyendaUsuarios()}
-
-        {/* Calendario */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Calendario de Días Libres
-          </label>
-          <div className="border rounded-lg p-2">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              </div>
-            ) : (
-              <BigCalendar
-                localizer={localizer}
-                events={prepararEventos()}
-                startAccessor="start"
-                endAccessor="end"
-                style={{ height: 500 }}
-                defaultView="month"
-                selectable
-                onSelectSlot={({ start }) => handleDateChange(start)}
-                onSelectEvent={(event) => {
-                  if (window.confirm(`¿Eliminar día libre de ${event.title}?`)) {
-                    eliminarDiaLibre(event.id);
-                  }
-                }}
-                eventPropGetter={eventStyleGetter}
-                messages={{
-                  today: 'Hoy',
-                  previous: 'Anterior',
-                  next: 'Siguiente',
-                  month: 'Mes',
-                  week: 'Semana',
-                  day: 'Día',
-                }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Formulario para asignar día libre */}
-        {modoAsignacion && (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-            <h3 className="font-medium text-gray-800 mb-2">Asignar Día Libre</h3>
-            <p className="text-lg font-semibold mb-2">
-              {selectedDate.toLocaleDateString('es-ES', { 
-                timeZone: 'UTC',
-                weekday: 'long', 
-                day: 'numeric', 
-                month: 'long', 
-                year: 'numeric' 
-              })}
-            </p>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Seleccionar Usuario
-              </label>
-              <select
-              id="usuario-select"
-              value={usuarioParaAsignar}                
-                onChange={(e) => setUsuarioParaAsignar(e.target.value)}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2.5 border text-sm"
-                aria-label="usuario-select-label"
-              >
-                <option value="">Selecciona un usuario</option>
-                {usuarios
-                  .filter(u => sedeSeleccionada === 'todos' || u.sede === sedeSeleccionada)
-                  .map((usuario) => (
-                    <option key={usuario.id} value={usuario.id}>
-                      {usuario.nombre} {usuario.apellido} ({usuario.sede || 'Sin sede'})
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div className="flex space-x-2">
-              <button
-                onClick={agregarDiaLibre}
-                disabled={isSubmitting || !usuarioParaAsignar}
-                className="flex-1 bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Asignando...' : 'Confirmar Día Libre'}
-              </button>
-              <button
-                onClick={() => setModoAsignacion(false)}
-                className="flex-1 bg-gray-200 text-gray-800 p-3 rounded-lg hover:bg-gray-300"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Resumen estadístico */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h3 className="font-medium text-gray-800 mb-2">Resumen</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm font-medium text-blue-800">Total Usuarios</p>
-              <p className="text-xl font-bold">
-                {usuarios.filter(u => sedeSeleccionada === 'todos' || u.sede === sedeSeleccionada).length}
-              </p>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg">
-              <p className="text-sm font-medium text-green-800">Días libres este mes</p>
-              <p className="text-xl font-bold">
-                {todosDiasLibres.filter(dia => {
-                  const fecha = new Date(dia.fecha);
-                  const hoy = new Date();
-                  return fecha.getMonth() === hoy.getMonth() && fecha.getFullYear() === hoy.getFullYear();
-                }).length}
-              </p>
-            </div>
-            <div className="bg-purple-50 p-3 rounded-lg">
-              <p className="text-sm font-medium text-purple-800">Días libres totales</p>
-              <p className="text-xl font-bold">{todosDiasLibres.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MisDatos({ userData }) {
-  if (!userData) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="text-gray-500 mt-2">Cargando datos...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">
-        Mis Datos Personales
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-900">{userData.nombre || 'No especificado'}</p>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Apellido</label>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-900">{userData.apellido || 'No especificado'}</p>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Sede Principal</label>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-900">{userData.sede || 'No especificado'}</p>
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Área</label>
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-900">{userData.area || 'No especificado'}</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function PaginaPrincipal() {
   const [userEmail, setUserEmail] = useState('');
@@ -2914,7 +2459,21 @@ const finalizarTurno = async () => {
               <Calendar className="w-4 h-4 mr-2" />
               Gestión Días Libres
             </button> */}
-            
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
+                activeTab === 'medicos'
+                  ? `text-white bg-${colors.primary[600]} shadow-md`
+                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
+              }`}
+              onClick={() => setActiveTab('medicos')}
+              style={{
+                backgroundColor: activeTab === 'medicos' ? colors.primary[900] : 'transparent',
+                color: activeTab === 'medicos' ? 'white' : colors.primary[600]
+              }}
+            >
+              <PersonStandingIcon className="w-4 h-4 mr-2" />
+              Médicos
+            </button>
             <button
               className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
                 activeTab === 'dashboard'
@@ -2951,6 +2510,12 @@ const finalizarTurno = async () => {
                 <GestionDiasLibres />
               </div>
             )} */}
+
+            {isAdmin && activeTab === 'medicos' && (
+  <div className="animate-fadeIn">
+    <GestionDoctores />
+  </div>
+)}
     
             {isAdmin && activeTab === 'dashboard' && (
               <div className="animate-fadeIn">
