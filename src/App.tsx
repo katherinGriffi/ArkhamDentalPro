@@ -856,7 +856,9 @@ const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
           user_id,
           created_at,
           tipos_movimiento (id, nombre, tipo),
-          users:user_id(nombre)
+          users:user_id(nombre),
+          medico:medico_id(*),
+        forma_pago
         `)
         .eq('user_id', userId)
         .eq('fecha', fechaSeleccionada)
@@ -969,7 +971,9 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
           medico_id,
           forma_pago,
           tipos_movimiento (id, nombre, tipo),
-          users:user_id(nombre)
+          users:user_id(nombre),
+         medico:medico_id(*),
+        forma_pago
         `)
         .eq('user_id', userId)
         .order('fecha', { ascending: false });
@@ -1351,101 +1355,109 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
 
 
         {/* Registros del día */}
-        <div>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-            <h3 className="font-medium" style={{ color: colorPrimaryDark }}>Movimientos del día</h3>
-            <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-              <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
-                Balance del día: 
-                <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatMoneda(totalDia)}
-                </span>
-              </p>
-            </div>
-          </div>
+       {/* Registros del día */}
+<div>
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+    <h3 className="font-medium" style={{ color: colorPrimaryDark }}>Movimientos del día</h3>
+    <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+      <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
+        Balance del día: 
+        <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {formatMoneda(totalDia)}
+        </span>
+      </p>
+    </div>
+  </div>
 
-          {isLoading && registros.length === 0 ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            </div>
-          ) : registros.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No hay registros para esta fecha</p>
-          ) : (
-            <div className="overflow-x-auto border rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
-                   
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Usuario</th>
-                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {registros.map((registro) => {
-                    const tipo = registro.tipo_movimiento?.tipo;
-                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                    const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
-                    
-                    return (
-                      <tr key={registro.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {fechaFormateada}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {hora}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            tipo === 'Ingreso' 
-                              ? 'bg-green-100 text-green-800' 
-                              : tipo === 'Egreso' 
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {tipo || 'DESC'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                          {registro.descripcion && (
-                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
-                          )}
-                        </td>
-                        <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
-                          {valorDisplay}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {registro.numero_factura || '-'}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                          {registro.usuario?.nombre || 'Desconocido'}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => eliminarRegistro(registro.id)}
-                            className="text-red-600 hover:text-red-900 flex items-center"
-                            title="Eliminar registro"
-                          >
-                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            <span className="sr-only sm:not-sr-only">Eliminar</span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+  {isLoading && registros.length === 0 ? (
+    <div className="flex justify-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+  ) : registros.length === 0 ? (
+    <p className="text-sm text-gray-500 text-center py-4">No hay registros para esta fecha</p>
+  ) : (
+    <div className="overflow-x-auto border rounded-lg">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Médico</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo Pago</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Usuario</th>
+            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Acciones</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {registros.map((registro) => {
+            const tipo = registro.tipo_movimiento?.tipo;
+            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
+            const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
+            
+            return (
+              <tr key={registro.id} className="hover:bg-gray-50">
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {fechaFormateada}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {hora}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                    tipo === 'Ingreso' 
+                      ? 'bg-green-100 text-green-800' 
+                      : tipo === 'Egreso' 
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {tipo || 'DESC'}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-sm text-gray-900">
+                  {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                  {registro.descripcion && (
+                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-sm text-gray-900">
+                  {registro.medico?.nombre || '-'}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                  {registro.forma_pago || '-'}
+                </td>
+                <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                  {valorDisplay}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                  {registro.numero_factura || '-'}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
+                  {registro.usuario?.nombre || 'Desconocido'}
+                </td>
+                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
+                  <button
+                    onClick={() => eliminarRegistro(registro.id)}
+                    className="text-red-600 hover:text-red-900 flex items-center"
+                    title="Eliminar registro"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span className="sr-only sm:not-sr-only">Eliminar</span>
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
 
         {/* Gráfico de distribución */}
 {chartData && (
@@ -1563,117 +1575,125 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
 
         {/* Historial */}
         {historialVisible && (
-          <div className="mt-6 sm:mt-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
-              <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Historial de Movimientos</h3>
-              <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-                <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
-                  Balance del mes: 
-                  <span className={`ml-2 text-lg ${balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatMoneda(balanceMes)}
-                  </span>
-                </p>
-              </div>
+  <div className="mt-6 sm:mt-8">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
+      <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Historial de Movimientos</h3>
+      <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+        <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
+          Balance del mes: 
+          <span className={`ml-2 text-lg ${balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatMoneda(balanceMes)}
+          </span>
+        </p>
+      </div>
+    </div>
+    
+    {historialFiltrado.length === 0 ? (
+      <p className="text-sm text-gray-500">No hay registros históricos</p>
+    ) : (
+      <div className="space-y-6 sm:space-y-8">
+        {historialFiltrado.map((anoData) => (
+          <div key={anoData.ano} className="border rounded-lg overflow-hidden" style={styles.card}>
+            <div className="px-4 py-2 border-b" style={{ backgroundColor: colorSecondary }}>
+              <h4 className="font-medium" style={{ color: colorPrimaryDark }}>{anoData.ano}</h4>
             </div>
             
-            {historialFiltrado.length === 0 ? (
-              <p className="text-sm text-gray-500">No hay registros históricos</p>
-            ) : (
-              <div className="space-y-6 sm:space-y-8">
-                {historialFiltrado.map((anoData) => (
-                  <div key={anoData.ano} className="border rounded-lg overflow-hidden" style={styles.card}>
-                    <div className="px-4 py-2 border-b" style={{ backgroundColor: colorSecondary }}>
-                      <h4 className="font-medium" style={{ color: colorPrimaryDark }}>{anoData.ano}</h4>
+            <div className="divide-y divide-gray-200">
+              {anoData.meses.map((mesData) => {
+                const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
+                  .toLocaleString('es-ES', { month: 'long' });
+                
+                const balanceMes = mesData.registros.reduce((sum, reg) => {
+                  const tipo = reg.tipo_movimiento?.tipo;
+                  return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
+                }, 0);
+                
+                return (
+                  <div key={`${anoData.ano}-${mesData.mes}`} className="bg-white">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0" style={{ backgroundColor: colorSecondary }}>
+                      <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
+                        {nombreMes}
+                      </span>
+                      <span className={`text-sm font-medium ${
+                        balanceMes >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        Balance: {formatMoneda(balanceMes)}
+                      </span>
                     </div>
                     
-                    <div className="divide-y divide-gray-200">
-                      {anoData.meses.map((mesData) => {
-                        const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
-                          .toLocaleString('es-ES', { month: 'long' });
-                        
-                        const balanceMes = mesData.registros.reduce((sum, reg) => {
-                          const tipo = reg.tipo_movimiento?.tipo;
-                          return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
-                        }, 0);
-                        
-                        return (
-                          <div key={`${anoData.ano}-${mesData.mes}`} className="bg-white">
-                            <div className="px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0" style={{ backgroundColor: colorSecondary }}>
-                              <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
-                                {nombreMes}
-                              </span>
-                              <span className={`text-sm font-medium ${
-                                balanceMes >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                                Balance: {formatMoneda(balanceMes)}
-                              </span>
-                            </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Médico</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Pago</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {mesData.registros.map((registro) => {
+                            const tipo = registro.tipo_movimiento?.tipo;
+                            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
+                            const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
                             
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                  <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                  {mesData.registros.map((registro) => {
-                                    const tipo = registro.tipo_movimiento?.tipo;
-                                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                                    const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
-                                    
-                                    return (
-                                      <tr key={registro.id} className="hover:bg-gray-50">
-                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                          {fechaFormateada}
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                          {hora}
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap">
-                                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                            tipo === 'Ingreso' 
-                                              ? 'bg-green-100 text-green-800' 
-                                              : tipo === 'Egreso' 
-                                                ? 'bg-red-100 text-red-800'
-                                                : 'bg-yellow-100 text-yellow-800'
-                                          }`}>
-                                            {tipo || 'DESC'}
-                                          </span>
-                                        </td>
-                                        <td className="px-3 py-2 text-sm text-gray-900">
-                                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                                          {registro.descripcion && (
-                                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
-                                          )}
-                                        </td>
-                                        <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
-                                          {valorDisplay}
-                                        </td>
-                                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                          {registro.numero_factura || '-'}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            return (
+                              <tr key={registro.id} className="hover:bg-gray-50">
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  {fechaFormateada}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  {hora}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap">
+                                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                                    tipo === 'Ingreso' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : tipo === 'Egreso' 
+                                        ? 'bg-red-100 text-red-800'
+                                        : 'bg-yellow-100 text-yellow-800'
+                                  }`}>
+                                    {tipo || 'DESC'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                                  {registro.descripcion && (
+                                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  {registro.medico?.nombre || '-'}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  {registro.forma_pago || '-'}
+                                </td>
+                                <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                                  {valorDisplay}
+                                </td>
+                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                  {registro.numero_factura || '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
-        )}
+        ))}
+      </div>
+    )}
+  </div>
+)}
       </div>
     </div>
   );
@@ -2527,7 +2547,7 @@ const finalizarTurno = async () => {
                     title="Dashboard Power BI"
                     width="100%" 
                     height="700"
-                    src="https://app.powerbi.com/view?r=eyJrIjoiOTEwODdmMmYtM2FjZC00ZDUyLWI1MjctM2IwYTVjM2RiMTNiIiwidCI6IjljNzI4NmYyLTg0OTUtNDgzZi1hMTc4LTQwMjZmOWU0ZTM2MiIsImMiOjR9" 
+                    src="" 
                     frameBorder="0"
                     allowFullScreen
                   />
