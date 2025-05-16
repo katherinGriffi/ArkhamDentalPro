@@ -379,8 +379,6 @@ type TimeEntry = {
   end_longitude?: number | null;
 };
 
-
-
 interface TipoMovimiento {
   id: number;
   nombre: string;
@@ -407,7 +405,6 @@ interface RegistroCaja {
 }
 
 
-
 interface Doctor {
   id: string;
   nombre_completo: string;
@@ -424,6 +421,7 @@ const GestionDoctores: React.FC = () => {
   const [medicos, setMedicos] = useState<Medico[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [editingMedico, setEditingMedico] = useState<Medico | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Campos del formulario
   const [nombre, setNombre] = useState('');
@@ -450,6 +448,20 @@ const GestionDoctores: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Función de filtrado
+  const filteredMedicos = medicos.filter(medico => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    return (
+      (medico.nombre && medico.nombre.toLowerCase().includes(searchLower)) ||
+      (medico.especialidad && medico.especialidad.toLowerCase().includes(searchLower)) ||
+      (medico.telefono && medico.telefono.toLowerCase().includes(searchLower)) ||
+      (medico.correo && medico.correo.toLowerCase().includes(searchLower))
+    );
+  });
 
   const handleSave = async () => {
     if (!nombre || !fechaIngreso) {
@@ -494,7 +506,7 @@ const GestionDoctores: React.FC = () => {
     setEspecialidad(medico.especialidad || '');
     setTelefono(medico.telefono || '');
     setCorreo(medico.correo || '');
-    setFechaIngreso(medico.fecha_ingreso.split('T')[0]); // Formatear solo la fecha
+    setFechaIngreso(medico.fecha_ingreso.split('T')[0]);
     setPorcentajeComision(medico.porcentaje_comision?.toString() || '');
   };
 
@@ -521,203 +533,1156 @@ const GestionDoctores: React.FC = () => {
   };
 
   return (
-    <div 
-  className="p-4 rounded-lg mb-6 shadow-md" 
-  style={{ backgroundColor: '#801461', color: 'white' }}
->
-  <h2 className="text-xl md:text-2xl font-bold">Gestión de Médicos</h2>
-
-      {/* Formulario */}
-      <div className="mb-8 p-4 md:p-6 border rounded-lg bg-white shadow-sm">
-        <h3 className="text-lg md:text-xl font-semibold mb-4" style={{ color: colorPrimary }}>
-          {editingMedico ? 'Editar Médico' : 'Nuevo Médico'}
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* Nombre */}
-          <div className="col-span-full">
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nombre Completo *</label>
-            <input
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-              placeholder="Ej: Dr. Juan Pérez"
-            />
-          </div>
-
-          {/* Especialidad */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Especialidad</label>
-            <input
-              type="text"
-              value={especialidad}
-              onChange={(e) => setEspecialidad(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-              placeholder="Ej: Cardiología"
-            />
-          </div>
-
-          {/* Teléfono */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Teléfono</label>
-            <input
-              type="text"
-              value={telefono}
-              onChange={(e) => setTelefono(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-              placeholder="Ej: +51 987654321"
-            />
-          </div>
-
-          {/* Correo */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Correo Electrónico</label>
-            <input
-              type="email"
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-              placeholder="Ej: medico@clinica.com"
-            />
-          </div>
-
-          {/* Fecha de Ingreso */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Fecha de Ingreso *</label>
-            <input
-              type="date"
-              value={fechaIngreso}
-              onChange={(e) => setFechaIngreso(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-            />
-          </div>
-
-          {/* Porcentaje de Comisión */}
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Porcentaje de Comisión (%)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={porcentajeComision}
-              onChange={(e) => setPorcentajeComision(e.target.value)}
-              className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] p-3 border text-sm h-12"
-              placeholder="Ej: 30.5"
-            />
-          </div>
-        </div>
-
-        {/* Botones */}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            onClick={handleSave}
-            className="px-6 py-3 bg-[#801461] text-white rounded-lg hover:bg-[#5d0e45] transition-colors text-base font-medium"
-          >
-            {editingMedico ? 'Actualizar Médico' : 'Registrar Médico'}
-          </button>
-          {editingMedico && (
-            <button
-              onClick={resetForm}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-base font-medium"
-            >
-              Cancelar Edición
-            </button>
-          )}
+    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: colors.secondary[50] }}>
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+        <div 
+          className="p-6 text-white"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h1 className="text-2xl md:text-3xl font-bold">Gestión de Médicos</h1>
+          <p className="opacity-90 mt-1">Administra los registros de médicos de tu clínica</p>
         </div>
       </div>
 
-      {/* Tabla de Médicos */}
-      {/* Lista de Médicos */}
-<div className="bg-white p-4 md:p-6 rounded-lg shadow-sm">
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-    <h3 className="text-lg md:text-xl font-semibold" style={{ color: colorPrimary }}>
-      Listado de Médicos
-    </h3>
-    <div className="text-sm" style={{ color: colorPrimaryDark }}>
-      {medicos.length} {medicos.length === 1 ? 'médico registrado' : 'médicos registrados'}
-    </div>
-  </div>
-  
-  {loading ? (
-    <div className="text-center py-8">
-      <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#801461]"></div>
-      <p className="mt-2">Cargando médicos...</p>
-    </div>
-  ) : medicos.length === 0 ? (
-    <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-      <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-      </svg>
-      <p className="mt-2">No se encontraron médicos registrados</p>
-    </div>
-  ) : (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border-collapse">
-        <thead>
-          <tr style={{ backgroundColor: colorPrimaryLight }}>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Nombre</th>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Especialidad</th>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white hidden sm:table-cell">Teléfono</th>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white hidden md:table-cell">Correo</th>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Ingreso</th>
-            <th className="border p-2 md:p-3 text-left text-sm md:text-base font-semibold text-white">Comisión</th>
-            <th className="border p-2 md:p-3 text-center text-sm md:text-base font-semibold text-white">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {medicos.map((med) => (
-            <tr key={med.id} className="hover:bg-gray-50 even:bg-gray-50">
-              <td className="border p-2 md:p-3 text-sm md:text-base font-medium text-gray-900">
-                {med.nombre}
-              </td>
-              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900">
-                {med.especialidad || '-'}
-              </td>
-              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 hidden sm:table-cell">
-                {med.telefono || '-'}
-              </td>
-              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 hidden md:table-cell">
-                {med.correo || '-'}
-              </td>
-              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900 whitespace-nowrap">
-                {new Date(med.fecha_ingreso).toLocaleDateString()}
-              </td>
-              <td className="border p-2 md:p-3 text-sm md:text-base text-gray-900">
-                {med.porcentaje_comision !== null ? `${med.porcentaje_comision}%` : '-'}
-              </td>
-              <td className="border p-2 md:p-3 text-center">
-                <div className="flex flex-col sm:flex-row gap-1 md:gap-2 justify-center">
-                  <button
-                    onClick={() => handleEdit(med)}
-                    className="px-2 py-1 md:px-3 md:py-1.5 bg-[#801461] text-black rounded text-xs md:text-sm hover:bg-[#5d0e45] transition-colors"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(med.id)}
-                    className="px-2 py-1 md:px-3 md:py-1.5 bg-red-600 text-white rounded text-xs md:text-sm hover:bg-red-800 transition-colors"
-                  >
-                    Eliminar
-                  </button>
+      {/* Formulario */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+        <div 
+          className="px-6 py-4 text-white flex justify-between items-center"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h2 className="text-xl font-semibold">
+            {editingMedico ? `Editando a ${nombre}` : 'Nuevo Médico'}
+          </h2>
+          {editingMedico && (
+            <button 
+              onClick={resetForm}
+              className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-full transition-colors"
+            >
+              Nuevo
+            </button>
+          )}
+        </div>
+        
+        <div className="p-6">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            {/* Información Básica */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Básica</h3>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Nombre Completo *</label>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                  placeholder="Ej: Dr. Juan Pérez"
+                  style={{ borderColor: colors.neutral[300] }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Especialidad</label>
+                <input
+                  type="text"
+                  value={especialidad}
+                  onChange={(e) => setEspecialidad(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                  placeholder="Ej: Cardiología"
+                  style={{ borderColor: colors.neutral[300] }}
+                />
+              </div>
+            </div>
+
+            {/* Información de Contacto */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Teléfono</label>
+                  <input
+                    type="text"
+                    value={telefono}
+                    onChange={(e) => setTelefono(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: +51 987654321"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
-</div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Correo Electrónico</label>
+                  <input
+                    type="email"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: medico@clinica.com"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Información Laboral */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Laboral</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Fecha de Ingreso *</label>
+                  <input
+                    type="date"
+                    value={fechaIngreso}
+                    onChange={(e) => setFechaIngreso(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    style={{ borderColor: colors.neutral[300] }}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Porcentaje de Comisión (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={porcentajeComision}
+                    onChange={(e) => setPorcentajeComision(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: 30.5"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="pt-4 flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center"
+                style={{ backgroundColor: colors.primary[500] }}
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                {editingMedico ? 'Actualizar Médico' : 'Registrar Médico'}
+              </button>
+              
+              {editingMedico && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                  style={{ 
+                    color: colors.primary[600],
+                    border: `1px solid ${colors.primary[600]}`,
+                    backgroundColor: 'white'
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Lista de médicos */}
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div 
+          className="px-6 py-4 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h2 className="text-xl font-semibold">Listado de Médicos</h2>
+          
+          <div className="relative w-full md:w-auto">
+            <input
+              type="text"
+              placeholder="Buscar por nombre, especialidad o teléfono..."
+              className="w-full py-2 px-4 rounded-full text-sm text-gray-800 focus:outline-none focus:ring-2"
+              style={{ 
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                minWidth: '250px'
+              }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <svg 
+              className="absolute right-3 top-2.5 h-4 w-4 text-white" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div 
+                className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
+                style={{ borderColor: colors.primary[500] }}
+              ></div>
+            </div>
+          ) : filteredMedicos.length === 0 ? (
+            <div className="text-center py-12">
+              <svg 
+                className="mx-auto h-16 w-16 text-gray-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">
+                {searchTerm ? 'No se encontraron resultados' : 'No hay médicos registrados'}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza agregando un nuevo médico'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Médico
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Especialidad
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Contacto
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ingreso
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Comisión
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredMedicos.map((medico) => (
+                    <tr key={medico.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
+                            style={{ backgroundColor: colors.primary[400] }}
+                          >
+                            {medico.nombre.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {medico.nombre}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{medico.especialidad || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                        <div className="text-sm text-gray-900">{medico.telefono || '-'}</div>
+                        <div className="text-sm text-gray-500">{medico.correo || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {new Date(medico.fecha_ingreso).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                          style={{ 
+                            backgroundColor: colors.primary[50],
+                            color: colors.primary[700]
+                          }}
+                        >
+                          {medico.porcentaje_comision !== null ? `${medico.porcentaje_comision}%` : '-'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => handleEdit(medico)}
+                            className="text-primary-600 hover:text-primary-900"
+                            style={{ color: colors.primary[500] }}
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(medico.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
 
 
+interface Paciente {
+  id: string;
+  dni: string;
+  nombres: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+  fecha_nacimiento: string;
+  sexo: 'M' | 'F' | 'O';
+  celular: string;
+  telefono_fijo: string | null;
+  correo: string | null;
+  direccion: string | null;
+  distrito: string | null;
+  grupo_sanguineo: string | null;
+  alergias: string | null;
+  enfermedades_cronicas: string | null;
+  medicamentos_actuales: string | null;
+  seguro_medico: string | null;
+  estado_civil: string | null;
+  ocupacion: string | null;
+  referencia: string | null;
+  historial_dental: string | null;
+  fecha_registro: string;
+  ultima_visita: string | null;
+  activo: boolean;
+}
+
+const GestionPaciente: React.FC = () => {
+  // Estados
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+   
+  // Campos del formulario
+  const [dni, setDni] = useState('');
+  const [nombres, setNombres] = useState('');
+  const [apellidoPaterno, setApellidoPaterno] = useState('');
+  const [apellidoMaterno, setApellidoMaterno] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [sexo, setSexo] = useState<'M' | 'F' | 'O'>('M');
+  const [celular, setCelular] = useState('');
+  const [telefonoFijo, setTelefonoFijo] = useState('');
+  const [correo, setCorreo] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [distrito, setDistrito] = useState('');
+  const [grupoSanguineo, setGrupoSanguineo] = useState('');
+  const [alergias, setAlergias] = useState('');
+  const [enfermedadesCronicas, setEnfermedadesCronicas] = useState('');
+  const [medicamentosActuales, setMedicamentosActuales] = useState('');
+  const [seguroMedico, setSeguroMedico] = useState('');
+  const [estadoCivil, setEstadoCivil] = useState('');
+  const [ocupacion, setOcupacion] = useState('');
+  const [referencia, setReferencia] = useState('');
+  const [historialDental, setHistorialDental] = useState('');
+  const [showAllPatients, setShowAllPatients] = useState(false);
+
+  // Función para manejar la visualización de todos los pacientes
+  const toggleShowAllPatients = () => {
+    setShowAllPatients(!showAllPatients);
+  };
+
+  // Cargar pacientes al iniciar
+  useEffect(() => {
+    fetchPacientes();
+  }, []);
+
+  const fetchPacientes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('pacientes').select('*');
+      if (error) throw error;
+      setPacientes(data || []);
+    } catch (err: any) {
+      toast.error(`Error al cargar pacientes: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función de filtrado
+
+const filteredPacientes = pacientes.filter(paciente => {
+  if (!searchTerm) return true; // Si no hay término de búsqueda, mostrar todos
+  
+  const searchLower = searchTerm.toLowerCase();
+  
+  // Verificar cada campo con manejo de valores nulos
+  return (
+    (paciente.dni && paciente.dni.toLowerCase().includes(searchLower)) ||
+    (paciente.nombres && paciente.nombres.toLowerCase().includes(searchLower)) ||
+    (paciente.apellido_paterno && paciente.apellido_paterno.toLowerCase().includes(searchLower)) ||
+    (paciente.apellido_materno && paciente.apellido_materno.toLowerCase().includes(searchLower)) ||
+    (paciente.celular && paciente.celular.toLowerCase().includes(searchLower))
+  );
+});
+
+  // Función para seleccionar paciente
+  const handleSelectPaciente = (paciente: Paciente) => {
+    setSelectedPaciente(paciente === selectedPaciente ? null : paciente);
+  };
+
+  const handleSave = async () => {
+    if (!dni || !nombres || !apellidoPaterno || !fechaNacimiento || !celular) {
+      toast.error('DNI, nombres, apellido paterno, fecha de nacimiento y celular son obligatorios');
+      return;
+    }
+
+    const pacienteData = {
+      dni,
+      nombres,
+      apellido_paterno: apellidoPaterno,
+      apellido_materno: apellidoMaterno || null,
+      fecha_nacimiento: fechaNacimiento,
+      sexo,
+      celular,
+      telefono_fijo: telefonoFijo || null,
+      correo: correo || null,
+      direccion: direccion || null,
+      distrito: distrito || null,
+      grupo_sanguineo: grupoSanguineo || null,
+      alergias: alergias || null,
+      enfermedades_cronicas: enfermedadesCronicas || null,
+      medicamentos_actuales: medicamentosActuales || null,
+      seguro_medico: seguroMedico || null,
+      estado_civil: estadoCivil || null,
+      ocupacion: ocupacion || null,
+      referencia: referencia || null,
+      historial_dental: historialDental || null,
+    };
+
+    try {
+      if (editingPaciente) {
+        // Actualizar paciente
+        const { error } = await supabase
+          .from('pacientes')
+          .update(pacienteData)
+          .eq('id', editingPaciente.id);
+        if (error) throw error;
+        toast.success('Paciente actualizado correctamente');
+      } else {
+        // Crear nuevo paciente
+        const { error } = await supabase.from('pacientes').insert([pacienteData]);
+        if (error) throw error;
+        toast.success('Paciente registrado correctamente');
+      }
+      resetForm();
+      fetchPacientes();
+      setSelectedPaciente(null);
+    } catch (err: any) {
+      toast.error(`Error al guardar paciente: ${err.message}`);
+    }
+  };
+
+  const handleEdit = (paciente: Paciente) => {
+    setEditingPaciente(paciente);
+    setSelectedPaciente(paciente);
+    setDni(paciente.dni);
+    setNombres(paciente.nombres);
+    setApellidoPaterno(paciente.apellido_paterno);
+    setApellidoMaterno(paciente.apellido_materno || '');
+    setFechaNacimiento(paciente.fecha_nacimiento);
+    setSexo(paciente.sexo);
+    setCelular(paciente.celular);
+    setTelefonoFijo(paciente.telefono_fijo || '');
+    setCorreo(paciente.correo || '');
+    setDireccion(paciente.direccion || '');
+    setDistrito(paciente.distrito || '');
+    setGrupoSanguineo(paciente.grupo_sanguineo || '');
+    setAlergias(paciente.alergias || '');
+    setEnfermedadesCronicas(paciente.enfermedades_cronicas || '');
+    setMedicamentosActuales(paciente.medicamentos_actuales || '');
+    setSeguroMedico(paciente.seguro_medico || '');
+    setEstadoCivil(paciente.estado_civil || '');
+    setOcupacion(paciente.ocupacion || '');
+    setReferencia(paciente.referencia || '');
+    setHistorialDental(paciente.historial_dental || '');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar este paciente?')) return;
+    try {
+      const { error } = await supabase.from('pacientes').delete().eq('id', id);
+      if (error) throw error;
+      toast.success('Paciente eliminado correctamente');
+      fetchPacientes();
+      if (selectedPaciente?.id === id) {
+        setSelectedPaciente(null);
+      }
+    } catch (error: any) {
+      toast.error(`Error al eliminar paciente: ${error.message}`);
+    }
+  };
+
+  const resetForm = () => {
+    setEditingPaciente(null);
+    setDni('');
+    setNombres('');
+    setApellidoPaterno('');
+    setApellidoMaterno('');
+    setFechaNacimiento('');
+    setSexo('M');
+    setCelular('');
+    setTelefonoFijo('');
+    setCorreo('');
+    setDireccion('');
+    setDistrito('');
+    setGrupoSanguineo('');
+    setAlergias('');
+    setEnfermedadesCronicas('');
+    setMedicamentosActuales('');
+    setSeguroMedico('');
+    setEstadoCivil('');
+    setOcupacion('');
+    setReferencia('');
+    setHistorialDental('');
+  };
+const pacientesToShow = showAllPatients ? filteredPacientes : filteredPacientes.slice(0, 15);
+  return (
+  <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: colors.secondary[50] }}>
+    {/* Header */}
+    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
+      <div
+        className="p-6 text-white"
+        style={{ backgroundColor: colors.primary[500] }}
+      >
+        <h1 className="text-2xl md:text-3xl font-bold">Gestión de Pacientes</h1>
+        <p className="opacity-90 mt-1">Administra los registros de pacientes de tu clínica</p>
+      </div>
+    </div>
+
+    {/* Botón para abrir el modal de nuevo paciente */}
+    <div className="mb-6">
+      <button
+        onClick={() => {
+          resetForm();
+          setIsModalOpen(true);
+        }}
+        className="px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center"
+        style={{ backgroundColor: colors.primary[500] }}
+      >
+        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Nuevo Paciente
+      </button>
+    </div>
+
+    {/* Modal para el formulario de paciente */}
+    {isModalOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div 
+            className="px-6 py-4 text-white flex justify-between items-center sticky top-0"
+            style={{ backgroundColor: colors.primary[500] }}
+          >
+            <h2 className="text-xl font-semibold">
+              {editingPaciente ? `Editando a ${nombres} ${apellidoPaterno}` : 'Nuevo Paciente'}
+            </h2>
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="text-white hover:text-gray-200"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="p-6">
+            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              {/* Información Personal */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Personal</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>DNI *</label>
+                    <input
+                      type="text"
+                      value={dni}
+                      onChange={(e) => setDni(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: 12345678"
+                      style={{ borderColor: colors.neutral[300] }}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Sexo *</label>
+                    <select
+                      value={sexo}
+                      onChange={(e) => setSexo(e.target.value as 'M' | 'F' | 'O')}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      style={{ borderColor: colors.neutral[300] }}
+                      required
+                    >
+                      <option value="M">Masculino</option>
+                      <option value="F">Femenino</option>
+                      <option value="O">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Nombres *</label>
+                  <input
+                    type="text"
+                    value={nombres}
+                    onChange={(e) => setNombres(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Juan Carlos"
+                    style={{ borderColor: colors.neutral[300] }}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Apellido Paterno *</label>
+                    <input
+                      type="text"
+                      value={apellidoPaterno}
+                      onChange={(e) => setApellidoPaterno(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: Pérez"
+                      style={{ borderColor: colors.neutral[300] }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Apellido Materno</label>
+                    <input
+                      type="text"
+                      value={apellidoMaterno}
+                      onChange={(e) => setApellidoMaterno(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: Gómez"
+                      style={{ borderColor: colors.neutral[300] }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Fecha de Nacimiento *</label>
+                  <input
+                    type="date"
+                    value={fechaNacimiento}
+                    onChange={(e) => setFechaNacimiento(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    style={{ borderColor: colors.neutral[300] }}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Información de Contacto */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Celular *</label>
+                    <input
+                      type="text"
+                      value={celular}
+                      onChange={(e) => setCelular(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: 987654321"
+                      style={{ borderColor: colors.neutral[300] }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Teléfono Fijo</label>
+                    <input
+                      type="text"
+                      value={telefonoFijo}
+                      onChange={(e) => setTelefonoFijo(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: 012345678"
+                      style={{ borderColor: colors.neutral[300] }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Correo Electrónico</label>
+                  <input
+                    type="email"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: paciente@example.com"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Dirección</label>
+                  <input
+                    type="text"
+                    value={direccion}
+                    onChange={(e) => setDireccion(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Av. Principal 123"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Distrito</label>
+                  <input
+                    type="text"
+                    value={distrito}
+                    onChange={(e) => setDistrito(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Miraflores"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+              </div>
+
+              {/* Información Médica */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Médica</h3>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Grupo Sanguíneo</label>
+                  <input
+                    type="text"
+                    value={grupoSanguineo}
+                    onChange={(e) => setGrupoSanguineo(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: O+"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Alergias</label>
+                  <input
+                    type="text"
+                    value={alergias}
+                    onChange={(e) => setAlergias(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Penicilina, polen"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Enfermedades Crónicas</label>
+                  <input
+                    type="text"
+                    value={enfermedadesCronicas}
+                    onChange={(e) => setEnfermedadesCronicas(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Diabetes, hipertensión"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Medicamentos Actuales</label>
+                  <input
+                    type="text"
+                    value={medicamentosActuales}
+                    onChange={(e) => setMedicamentosActuales(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Metformina 500mg"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Seguro Médico</label>
+                  <input
+                    type="text"
+                    value={seguroMedico}
+                    onChange={(e) => setSeguroMedico(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Essalud"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+              </div>
+
+              {/* Información Adicional */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Adicional</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Estado Civil</label>
+                    <input
+                      type="text"
+                      value={estadoCivil}
+                      onChange={(e) => setEstadoCivil(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: Casado"
+                      style={{ borderColor: colors.neutral[300] }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Ocupación</label>
+                    <input
+                      type="text"
+                      value={ocupacion}
+                      onChange={(e) => setOcupacion(e.target.value)}
+                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                      placeholder="Ej: Ingeniero"
+                      style={{ borderColor: colors.neutral[300] }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Referencia</label>
+                  <input
+                    type="text"
+                    value={referencia}
+                    onChange={(e) => setReferencia(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    placeholder="Ej: Amigo, familiar"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Historial Dental</label>
+                  <textarea
+                    value={historialDental}
+                    onChange={(e) => setHistorialDental(e.target.value)}
+                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
+                    rows={3}
+                    placeholder="Notas sobre el historial dental del paciente"
+                    style={{ borderColor: colors.neutral[300] }}
+                  />
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="pt-4 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center"
+                  style={{ backgroundColor: colors.primary[500] }}
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  {editingPaciente ? 'Actualizar Paciente' : 'Registrar Paciente'}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
+                  style={{ 
+                    color: colors.primary[600],
+                    border: `1px solid ${colors.primary[600]}`,
+                    backgroundColor: 'white'
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
+  
+
+    {/* Lista de pacientes */}
+     <div className="bg-white rounded-xl shadow-md overflow-hidden">
+        <div 
+          className="px-6 py-4 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h2 className="text-xl font-semibold">Listado de Pacientes</h2>
+          <p className="text-sm text-white">
+            Total: {filteredPacientes.length} {!showAllPatients && filteredPacientes.length > 15 && `(mostrando 15 de ${filteredPacientes.length})`}
+          </p>
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative w-full md:w-auto">
+              <input
+                type="text"
+                placeholder="Buscar por DNI, nombre o teléfono..."
+                className="w-full py-2 px-4 rounded-full text-sm text-gray-800 focus:outline-none focus:ring-2"
+                style={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  color: 'white',
+                  minWidth: '250px'
+                }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <svg 
+                className="absolute right-3 top-2.5 h-4 w-4 text-white" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            {filteredPacientes.length > 15 && (
+              <button
+                onClick={toggleShowAllPatients}
+                className="px-4 py-2 rounded-lg font-medium text-white transition-colors flex items-center justify-center text-sm"
+                style={{ 
+                  backgroundColor: colors.primary[700],
+                  border: `1px solid ${colors.primary[300]}`,
+                }}
+              >
+                {showAllPatients ? (
+                  <>
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                    </svg>
+                    Mostrar menos
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    Ver todos
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div 
+                className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
+                style={{ borderColor: colors.primary[500] }}
+              ></div>
+            </div>
+          ) : filteredPacientes.length === 0 ? (
+            <div className="text-center py-12">
+              <svg 
+                className="mx-auto h-16 w-16 text-gray-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">
+                {searchTerm ? 'No se encontraron resultados' : 'No hay pacientes registrados'}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza agregando un nuevo paciente'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Paciente
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      DNI
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Contacto
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Edad
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {pacientesToShow.map((paciente) => {
+                    const edad = paciente.fecha_nacimiento 
+                      ? new Date().getFullYear() - new Date(paciente.fecha_nacimiento).getFullYear() 
+                      : 'N/A';
+                    
+                    return (
+                      <tr 
+                        key={paciente.id} 
+                        className={`hover:bg-gray-50 ${selectedPaciente?.id === paciente.id ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleSelectPaciente(paciente)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
+                              style={{ backgroundColor: colors.primary[400] }}
+                            >
+                              {paciente.nombres.charAt(0)}{paciente.apellido_paterno.charAt(0)}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {`${paciente.nombres} ${paciente.apellido_paterno} ${paciente.apellido_materno || ''}`}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{paciente.dni}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                          <div className="text-sm text-gray-900">{paciente.celular}</div>
+                          <div className="text-sm text-gray-500">{paciente.correo || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                            style={{ 
+                              backgroundColor: colors.primary[50],
+                              color: colors.primary[700]
+                            }}
+                          >
+                            {edad} años
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex justify-end space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(paciente);
+                                setIsModalOpen(true);
+                              }}
+                              className="text-primary-600 hover:text-primary-900"
+                              style={{ color: colors.primary[500] }}
+                            >
+                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(paciente.id);
+                              }}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+    {/* Detalles del paciente seleccionado */}
+    {selectedPaciente && (
+      <div className="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
+        <div 
+          className="px-6 py-4 text-white flex justify-between items-center"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h2 className="text-xl font-semibold">Detalles del Paciente</h2>
+          <button 
+            onClick={() => setSelectedPaciente(null)}
+            className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-full transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Personal</h3>
+            <div className="space-y-3">
+              <p><span className="font-medium">Nombre completo:</span> {`${selectedPaciente.nombres} ${selectedPaciente.apellido_paterno} ${selectedPaciente.apellido_materno || ''}`}</p>
+              <p><span className="font-medium">DNI:</span> {selectedPaciente.dni}</p>
+              <p><span className="font-medium">Fecha de Nacimiento:</span> {new Date(selectedPaciente.fecha_nacimiento).toLocaleDateString()}</p>
+              <p><span className="font-medium">Edad:</span> {new Date().getFullYear() - new Date(selectedPaciente.fecha_nacimiento).getFullYear()} años</p>
+              <p><span className="font-medium">Sexo:</span> {selectedPaciente.sexo === 'M' ? 'Masculino' : selectedPaciente.sexo === 'F' ? 'Femenino' : 'Otro'}</p>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
+            <div className="space-y-3">
+              <p><span className="font-medium">Celular:</span> {selectedPaciente.celular}</p>
+              <p><span className="font-medium">Teléfono Fijo:</span> {selectedPaciente.telefono_fijo || '-'}</p>
+              <p><span className="font-medium">Correo:</span> {selectedPaciente.correo || '-'}</p>
+              <p><span className="font-medium">Dirección:</span> {selectedPaciente.direccion || '-'}</p>
+              <p><span className="font-medium">Distrito:</span> {selectedPaciente.distrito || '-'}</p>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Médica</h3>
+            <div className="space-y-3">
+              <p><span className="font-medium">Grupo Sanguíneo:</span> {selectedPaciente.grupo_sanguineo || '-'}</p>
+              <p><span className="font-medium">Alergias:</span> {selectedPaciente.alergias || 'Ninguna'}</p>
+              <p><span className="font-medium">Enfermedades Crónicas:</span> {selectedPaciente.enfermedades_cronicas || 'Ninguna'}</p>
+              <p><span className="font-medium">Medicamentos Actuales:</span> {selectedPaciente.medicamentos_actuales || 'Ninguno'}</p>
+              <p><span className="font-medium">Seguro Médico:</span> {selectedPaciente.seguro_medico || '-'}</p>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Adicional</h3>
+            <div className="space-y-3">
+              <p><span className="font-medium">Estado Civil:</span> {selectedPaciente.estado_civil || '-'}</p>
+              <p><span className="font-medium">Ocupación:</span> {selectedPaciente.ocupacion || '-'}</p>
+              <p><span className="font-medium">Referencia:</span> {selectedPaciente.referencia || '-'}</p>
+              <p><span className="font-medium">Historial Dental:</span></p>
+              <div className="bg-gray-50 p-3 rounded-lg">
+                {selectedPaciente.historial_dental || 'No hay registros'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
+};
 
 
-
-// Definición de interfaces
 interface TipoMovimiento {
   id: number;
   nombre: string;
@@ -739,8 +1704,6 @@ interface RegistroCaja {
     nombre: string;
   };
 }
-
-
 
 function MiCaja({ userId }: { userId: string }) {
   // Estados
@@ -1149,12 +2112,22 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     }
   };
 
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border border-gray-100">
-      <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6 p-4 rounded-lg" style={styles.header}>
-        Registro de Caja Diaria
-      </h2>
 
+
+  
+
+  return (
+   
+
+
+<div className="bg-white rounded-xl shadow-md overflow-hidden mb-3">
+        <div 
+          className="p-6 text-white"
+          style={{ backgroundColor: colors.primary[500] }}
+        >
+          <h1 className="text-2xl md:text-2xl font-bold">Gestion Financiera</h1>
+          
+        </div>
       <div className="grid gap-4 sm:gap-6">
         {/* Filtros y resumen */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
@@ -1700,7 +2673,6 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
 }
 
 
-
 function MisBoletas({ userId }: MisBoletasProps) {
 
   const [boletas, setBoletas] = useState<Boleta[]>([]);
@@ -1820,7 +2792,6 @@ function MisBoletas({ userId }: MisBoletasProps) {
     </div>
   );
 }
-
 
 
 function PaginaPrincipal() {
@@ -2355,10 +3326,6 @@ const finalizarTurno = async () => {
   }
 };
 
-
-
-
-
   const estiloEvento = (evento: {
     status: string;
   }) => {
@@ -2379,11 +3346,11 @@ const finalizarTurno = async () => {
       },
     };
   };
-
-  const renderAdminContent = () => {
+ // ADMIN CONTENT
+    const renderAdminContent = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
-  
+
     useEffect(() => {
       const checkAdminStatus = async () => {
         try {
@@ -2392,13 +3359,13 @@ const finalizarTurno = async () => {
             setIsAdmin(false);
             return;
           }
-  
+
           const { data: userData, error } = await supabase
             .from('users')
             .select('role')
             .eq('id', user.id)
             .single();
-  
+
           if (error) throw error;
           setIsAdmin(userData?.role === 'admin');
         } catch (error) {
@@ -2408,12 +3375,10 @@ const finalizarTurno = async () => {
           setLoading(false);
         }
       };
-  
-      checkAdminStatus();
 
-      
+      checkAdminStatus();
     }, []);
-  
+
     if (loading) {
       return (
         <div className="flex justify-center items-center h-64">
@@ -2421,7 +3386,7 @@ const finalizarTurno = async () => {
         </div>
       );
     }
-  
+
     return (
       <div className="flex">
         {/* Barra lateral - Solo visible para admin */}
@@ -2446,39 +3411,6 @@ const finalizarTurno = async () => {
               General
             </button>
             
-            {/* Botón de Boletas (comentado)
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'boletas'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('boletas')}
-              style={{
-                backgroundColor: activeTab === 'boletas' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'boletas' ? 'white' : colors.primary[600]
-              }}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Gestión Boletas
-            </button> */}
-            
-            {/* Botón de Días Libres (comentado)
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'dias-libres'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('dias-libres')}
-              style={{
-                backgroundColor: activeTab === 'dias-libres' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'dias-libres' ? 'white' : colors.primary[600]
-              }}
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              Gestión Días Libres
-            </button> */}
             <button
               className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
                 activeTab === 'medicos'
@@ -2487,13 +3419,38 @@ const finalizarTurno = async () => {
               }`}
               onClick={() => setActiveTab('medicos')}
               style={{
-                backgroundColor: activeTab === 'medicos' ? colors.primary[900] : 'transparent',
+                backgroundColor: activeTab === 'medicos' ? colors.primary[600] : 'transparent',
                 color: activeTab === 'medicos' ? 'white' : colors.primary[600]
               }}
             >
               <PersonStandingIcon className="w-4 h-4 mr-2" />
               Médicos
             </button>
+
+            {/* Novo botão para Pacientes */}
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
+                activeTab === 'pacientes'
+                  ? `text-white bg-${colors.primary[600]} shadow-md`
+                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
+              }`}
+              onClick={() => setActiveTab('pacientes')}
+              style={{
+                backgroundColor: activeTab === 'pacientes' ? colors.primary[600] : 'transparent',
+                color: activeTab === 'pacientes' ? 'white' : colors.primary[600]
+              }}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Pacientes
+            </button>
+
+
+
+
+
+
+
+
             <button
               className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
                 activeTab === 'dashboard'
@@ -2519,23 +3476,18 @@ const finalizarTurno = async () => {
           <div className="transition-all duration-200">
             {(!isAdmin || activeTab === 'registro') && renderNormalUserContent()}
             
-            {/* {isAdmin && activeTab === 'boletas' && (
+            {isAdmin && activeTab === 'medicos' && (
               <div className="animate-fadeIn">
-                <GestionBoletas />
+                <GestionDoctores />
               </div>
             )}
-            
-            {isAdmin && activeTab === 'dias-libres' && (
-              <div className="animate-fadeIn">
-                <GestionDiasLibres />
-              </div>
-            )} */}
 
-            {isAdmin && activeTab === 'medicos' && (
-  <div className="animate-fadeIn">
-    <GestionDoctores />
-  </div>
-)}
+            {/* Novo conteúdo para Pacientes */}
+            {isAdmin && activeTab === 'pacientes' && (
+              <div className="animate-fadeIn">
+                <GestionPaciente/>
+              </div>
+            )}
     
             {isAdmin && activeTab === 'dashboard' && (
               <div className="animate-fadeIn">
@@ -2560,75 +3512,75 @@ const finalizarTurno = async () => {
     );
   };
   
-  
-  const renderNormalUserContent = () => {
-    return (
-      <>
-        <div className="flex border-b mb-6" style={{ borderColor: colors.primary[100] }}>
-         
-    
-          {/* Pestaña Mi Caja */}
-          <button
-            className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
-              userActiveTab === 'caja'
-                ? `text-white bg-${colors.primary[900]}`
-                : `text-${colors.primary[600]} hover:bg-${colors.primary[50]}`
-            }`}
-            onClick={() => setUserActiveTab('caja')}
-            style={{
-              borderBottom: userActiveTab === 'caja' ? `2px solid ${colors.primary[900]}` : 'none',
-              marginBottom: '-1px'
-            }}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Mi Caja
-          </button>
+ // USER CONTENT
+    const renderNormalUserContent = () => {
+      return (
+        <>
+          <div className="flex border-b mb-6" style={{ borderColor: colors.primary[100] }}>
+          
+      
+            {/* Pestaña Mi Caja */}
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
+                userActiveTab === 'caja'
+                  ? `text-white bg-${colors.primary[900]}`
+                  : `text-${colors.primary[600]} hover:bg-${colors.primary[50]}`
+              }`}
+              onClick={() => setUserActiveTab('caja')}
+              style={{
+                borderBottom: userActiveTab === 'caja' ? `2px solid ${colors.primary[900]}` : 'none',
+                marginBottom: '-1px'
+              }}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Mi Caja
+            </button>
 
-           {/* Pestaña Historias Clínicas */}
-           <button
-            className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
-              userActiveTab === 'boletas'
-                ? `text-white bg-${colors.primary[900]}`
-                : `text-${colors.primary[600]} hover:bg-${colors.primary[900]}`
-            }`}
-            onClick={() => setUserActiveTab('boletas')}
-            style={{
-              borderBottom: userActiveTab === 'boletas' ? `2px solid ${colors.primary[900]}` : 'none',
-              marginBottom: '-1px'
-            }}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Historias Clínicas
-          </button>
-        </div>
-    
-        {/* Contenido de las pestañas */}
-        {userActiveTab === 'mis-datos' && (
-          <MisDatos userData={userData} />
-        )}
-    
-        {userActiveTab === 'boletas' && (
-          <div className="rounded-xl shadow-sm p-6" style={{ 
-            backgroundColor: 'white',
-            border: `1px solid ${colors.primary[100]}`
-          }}>
-            <MisBoletas userId={userId} />
+            {/* Pestaña Historias Clínicas */}
+            <button
+              className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
+                userActiveTab === 'boletas'
+                  ? `text-white bg-${colors.primary[900]}`
+                  : `text-${colors.primary[600]} hover:bg-${colors.primary[900]}`
+              }`}
+              onClick={() => setUserActiveTab('boletas')}
+              style={{
+                borderBottom: userActiveTab === 'boletas' ? `2px solid ${colors.primary[900]}` : 'none',
+                marginBottom: '-1px'
+              }}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Historias Clínicas
+            </button>
           </div>
-        )}
-    
-        {userActiveTab === 'caja' && (
-          <div className="rounded-xl shadow-sm p-6" style={{ 
-            backgroundColor: 'white',
-            border: `1px solid ${colors.primary[100]}`
-          }}>
-            <MiCaja userId={userId} />
-          </div>
-        )}
-      </>
-    );
-  };
+      
+          {/* Contenido de las pestañas */}
+          {userActiveTab === 'mis-datos' && (
+            <MisDatos userData={userData} />
+          )}
+      
+          {userActiveTab === 'boletas' && (
+            <div className="rounded-xl shadow-sm p-6" style={{ 
+              backgroundColor: 'white',
+              border: `1px solid ${colors.primary[100]}`
+            }}>
+              <MisBoletas userId={userId} />
+            </div>
+          )}
+      
+          {userActiveTab === 'caja' && (
+            <div className="rounded-xl shadow-sm p-6" style={{ 
+              backgroundColor: 'white',
+              border: `1px solid ${colors.primary[100]}`
+            }}>
+              <MiCaja userId={userId} />
+            </div>
+          )}
+        </>
+      );
+    };
 
 
   return (
@@ -2727,7 +3679,6 @@ const finalizarTurno = async () => {
   );
   
 }
-
 
 
 function App() {
