@@ -72,122 +72,78 @@ function IniciarSesion() {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  setIsLoading(true);
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      console.log('🔑 Iniciando proceso de login...');
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      console.log('🧹 Sesión anterior limpiada');
 
-  try {
-    toast.dismiss();
-    console.log(`Autenticando: ${email}`);
-
-    // Tenta autenticação com o Supabase
-    const { data: { user, session }, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (authError || !user || !session) {
-      throw authError || new Error('Falha na autenticação');
-    }
-
-    console.log('✅ Usuario autenticado:', {
-      id: user.id,
-      email: user.email,
-      provider: user.app_metadata?.provider || 'email'
-    });
-
-    let userData = null;
-
-    // Método 1: Consulta direta
-  const { data: directData, error: directError } = await supabase
-  
-    .from('users')  // Nome da tabela
-  .select('id, email, nombre, apellido, role')
-  .eq('id', user.id)
-  .maybeSingle();
-
-    console.log('🔍 Método 1 - Dados diretos:', directData);
-    console.log('❌ Método 1 - Erro:', directError);
-
-    // Verifica se a consulta direta foi bem-sucedida
-    if (!directError && directData) {
-      userData = directData;
-    } else {
-      console.warn('🔁 Falha no método direto, tentando RPC...');
-
-      // Método 2: Consultar via RPC
-      const { data: rpcData, error: rpcError } = await supabase
-        
-        .rpc('get_user_by_id', { user_id: user.id });
-
-      console.log('🔍 Método 2 - Dados RPC:', rpcData);
-      console.log('❌ Método 2 - Erro RPC:', rpcError);
-
-      if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
-        userData = rpcData[0];  // Primeiro item do array, se houver
-      } else if (!rpcError && typeof rpcData === 'object') {
-        userData = rpcData;  // Se for um único objeto
-      } else {
-        console.warn('🔁 Falha no RPC, tentando SQL raw...');
-        // Método 3: Consulta SQL raw
-        const { data: sqlData, error: sqlError } = await supabase
-          .from('users')
-          .select('id, email, nombre, apellido, role, activo')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        console.log('🔍 Método 3 - Dados SQL raw:', sqlData);
-        console.log('❌ Método 3 - Erro SQL:', sqlError);
-
-        if (sqlData) {
-          userData = sqlData;
-        }
-      }
-    }
-
-    // Se não encontrou os dados do usuário em nenhum método
-    if (!userData) {
-      console.error('🛑 Usuário não encontrado em nenhum método', {
-        id: user.id,
-        email: user.email,
-        attempts: ['direct', 'rpc', 'raw']
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      throw new Error('Registro do usuário não localizado');
+
+      if (error) {
+        console.error('❌ Error en login:', error);
+        throw error;
+      }
+
+      console.log('✅ Login exitoso:', data);
+      
+      if (data?.user) {
+        console.log('👤 Usuario autenticado:', data.user);
+        // Store user data in localStorage
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          email: data.user.email
+        }));
+        
+        // Navigate to main page
+        navigate('/caja');
+      }
+    } catch (error) {
+      console.error('❌ Error completo en login:', error);
+      toast.error('Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-   
-    // Armazenando dados no localStorage
-    localStorage.setItem('sb-access-token', session.access_token);
-    localStorage.setItem('sb-refresh-token', session.refresh_token);
-    localStorage.setItem('user', JSON.stringify({
-      id: user.id,
-      email: user.email,
-      nombre: userData.nombre,
-      apellido: userData.apellido,
-      role: userData.role
-    }));
+  const clearAuthStorage = async () => {
+    try {
+      console.log('🧹 Limpiando almacenamiento de autenticación...');
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear all state
+      setUserId(null);
+      setUserData(null);
+      setPacientes([]);
+      setMedicos([]);
+      setRegistros([]);
+      setChartData(null);
+      setHistorialFiltrado([]);
+      
+      // Clear local storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      console.log('✅ Almacenamiento limpiado');
+      
+      // Show login form
+      setShowLogin(true);
+    } catch (error) {
+      console.error('❌ Error al limpiar almacenamiento:', error);
+      toast.error('Error al cerrar sesión');
+    }
+  };
 
-    console.log('🎉 Login bem-sucedido para:', user.email);
-    navigate('/caja');  // Navegação após login bem-sucedido
-  } catch (error: any) {
-    console.error('💥 Erro completo:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack
-    });
-    toast.error(error.message || 'Erro no login');
-    localStorage.removeItem('sb-access-token');
-    localStorage.removeItem('sb-refresh-token');
-    localStorage.removeItem('user');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const clearAuthStorage = () => {
-  localStorage.removeItem('sb-access-token');
-  localStorage.removeItem('sb-refresh-token');
-  localStorage.removeItem('user');
-};
-
-// FORMULARIO LOGIN
+  // FORMULARIO LOGIN
 
   return (
     
@@ -284,60 +240,40 @@ interface TipoMovimiento {
   tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
 }
 
-interface RegistroCaja {
+interface Medico {
   id: string;
-  fecha: string;
-  tipo_movimiento_id: number;
-  tipo_movimiento?: TipoMovimiento;
-  descripcion: string;
-  valor: number;
-  numero_factura: string | null;
-  user_id: string;
-  created_at: string;
-  usuario?: {
-    nombre: string;
-  };
-  paciente?: {
-    id: string;
-    nombre: string;
-  };
-  medico?: {
-    id: number;
-    nombre: string;
-  };
-  forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
-}
-interface Paciente {
-  id: string;
-  dni: string;
-  nombres: string;
-  apellido_paterno: string;
-  apellido_materno: string | null;
-  fecha_nacimiento: string;
-  sexo: 'M' | 'F' | 'O';
-  celular: string;
-  telefono_fijo: string | null;
-  correo: string | null;
-  direccion: string | null;
-  distrito: string | null;
-  grupo_sanguineo: string | null;
-  alergias: string | null;
-  enfermedades_cronicas: string | null;
-  medicamentos_actuales: string | null;
-  seguro_medico: string | null;
-  estado_civil: string | null;
-  ocupacion: string | null;
-  referencia: string | null;
-  historial_dental: string | null;
-  fecha_registro: string;
-  ultima_visita: string | null;
-  activo: boolean;
-}
-interface TipoMovimiento {
-  id: number;
   nombre: string;
   activo: boolean;
-  tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+  especialidad?: string;
+  telefono?: string;
+  correo?: string;
+  fecha_ingreso?: string;
+  porcentaje_comision?: number;
+}
+
+interface Paciente {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  dni?: string;
+  celular?: string;
+  fecha_nacimiento?: string;
+  sexo?: 'M' | 'F' | 'O';
+  telefono_fijo?: string;
+  correo?: string;
+  direccion?: string;
+  distrito?: string;
+  grupo_sanguineo?: string;
+  alergias?: string;
+  enfermedades_cronicas?: string;
+  medicamentos_actuales?: string;
+  seguro_medico?: string;
+  estado_civil?: string;
+  ocupacion?: string;
+  referencia?: string;
+  historial_dental?: string;
+  fecha_registro?: string;
+  ultima_visita?: string;
 }
 
 interface RegistroCaja {
@@ -353,6 +289,9 @@ interface RegistroCaja {
   usuario?: {
     nombre: string;
   };
+  paciente?: Paciente;
+  medico?: Medico;
+  forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
 }
 
 const GestionDoctores: React.FC = () => {
@@ -441,11 +380,11 @@ const GestionDoctores: React.FC = () => {
 
   const handleEdit = (medico: Medico) => {
     setEditingMedico(medico);
-    setNombre(medico.nombre);
+    setNombre(medico.nombre || '');
     setEspecialidad(medico.especialidad || '');
     setTelefono(medico.telefono || '');
     setCorreo(medico.correo || '');
-    setFechaIngreso(medico.fecha_ingreso.split('T')[0]);
+    setFechaIngreso(medico.fecha_ingreso ? medico.fecha_ingreso.split('T')[0] : '');
     setPorcentajeComision(medico.porcentaje_comision?.toString() || '');
   };
 
@@ -720,7 +659,7 @@ const GestionDoctores: React.FC = () => {
                           <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
                             style={{ backgroundColor: colors.primary[400] }}
                           >
-                            {medico.nombre.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            {medico.nombre?.split(' ').map(n => n[0]).join('').substring(0, 2)}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
@@ -828,14 +767,38 @@ const GestionPaciente: React.FC = () => {
 
   const fetchPacientes = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase.from('pacientes').select('*');
-      if (error) throw error;
-      setPacientes(data || []);
-    } catch (err: any) {
-      toast.error(`Error al cargar pacientes: ${err.message}`);
-    } finally {
-      setLoading(false);
+      //console.log('🔍 Iniciando carga de pacientes...');
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('*')
+        .eq('activo', true);
+
+      if (error) {
+        console.error('❌ Error al cargar pacientes:', error);
+        throw error;
+      }
+
+      //console.log('📦 Datos recibidos de la base de datos:', data);
+
+      // Transform the data to match our new structure
+      const pacientesTransformados = data.map(paciente => {
+        const nombreCompleto = paciente.nombres ? 
+          `${paciente.nombres} ${paciente.apellido_paterno || ''} ${paciente.apellido_materno || ''}`.trim() : 
+          paciente.nombre;
+        
+       
+
+        return {
+          ...paciente,
+          nombre: nombreCompleto
+        };
+      });
+
+      console.log('✅ Pacientes transformados:', pacientesTransformados);
+      setPacientes(pacientesTransformados);
+    } catch (error) {
+      console.error('❌ Error completo al cargar pacientes:', error);
+      toast.error('Error al cargar lista de pacientes');
     }
   };
 
@@ -1612,17 +1575,12 @@ function MiCaja({ userId }: { userId: string }) {
   const [chartData, setChartData] = useState<{ingresos: any, egresos: any} | null>(null);
   const [medicoId, setMedicoId] = useState<number | null>(null);
   const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
- const [medicos, setMedicos] = useState<Array<{
-  id: number;
-  nombres: string;
-  apellido_paterno: string;
-  apellido_materno?: string;
-}>>([]);
+ const [medicos, setMedicos] = useState<Medico[]>([]);
 const [isLoadingMedicos, setIsLoadingMedicos] = useState(true);
 const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
   const [busquedaPaciente, setBusquedaPaciente] = useState('');
   const [pacienteId, setPacienteId] = useState<string | null>(null);
-  const [pacientes, setPacientes] = useState<{id: string, nombre: string}[]>([]);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [tipoMoneda, setTipoMoneda] = useState<'SOLES' | 'USD'>('SOLES');
   const [valorEnSoles, setValorEnSoles] = useState(0);
   const [query, setQuery] = useState('');
@@ -1756,15 +1714,37 @@ const formatDateTime = (dateString: string) => {
 useEffect(() => {
   const cargarPacientes = async () => {
     try {
+      //console.log('🔍 Iniciando carga de pacientes...');
       const { data, error } = await supabase
         .from('pacientes')
-        .select('id, nombres, apellido_paterno');
+        .select('*')
+        .eq('activo', true);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error al cargar pacientes:', error);
+        throw error;
+      }
 
-      setPacientes(data || []);
+      //console.log('📦 Datos recibidos de la base de datos:', data);
+
+      // Transform the data to match our new structure
+      const pacientesTransformados = data.map(paciente => {
+        const nombreCompleto = paciente.nombres ? 
+          `${paciente.nombres} ${paciente.apellido_paterno || ''} ${paciente.apellido_materno || ''}`.trim() : 
+          paciente.nombre;
+        
+       // console.log('🔄 Transformando paciente:', {          original: paciente,          nombreCompleto: nombreCompleto        });
+
+        return {
+          ...paciente,
+          nombre: nombreCompleto
+        };
+      });
+
+      //console.log('✅ Pacientes transformados:', pacientesTransformados);
+      setPacientes(pacientesTransformados);
     } catch (error) {
-      console.error('Error al cargar pacientes:', error);
+      console.error('❌ Error completo al cargar pacientes:', error);
       toast.error('Error al cargar lista de pacientes');
     }
   };
@@ -1796,37 +1776,23 @@ useEffect(() => {
  // Función para obtener médicos con manejo de errores mejorado
 // Función mejorada para cargar médicos
 const cargarMedicos = async () => {
-  setIsLoadingMedicos(true);
-  setErrorMedicos(null);
-  
   try {
-    console.log('Iniciando carga de médicos...'); // Debug
-    
-    const { data, error, status } = await supabase
-      .from('medicos') // Verifica que coincida con tu tabla
-      .select('id, nombre')
-      
-      .order('nombre', { ascending: true });
-
-    console.log('Respuesta de Supabase:', { data, error, status }); // Debug
+    console.log('🔍 Iniciando carga de médicos...');
+    const { data, error } = await supabase
+      .from('medicos')
+      .select('*')
+      .eq('activo', true);
 
     if (error) {
-      throw new Error(`Error ${status}: ${error.message}`);
+      console.error('❌ Error al cargar médicos:', error);
+      throw error;
     }
-    
-    if (!data || data.length === 0) {
-      console.warn('No se encontraron médicos activos');
-      setMedicos([]);
-      return;
-    }
-    
-    setMedicos(data);
-  } catch (error: any) {
-    console.error('Error completo al cargar médicos:', error);
-    setErrorMedicos(`Error al cargar médicos: ${error.message}`);
-    setMedicos([]);
-  } finally {
-    setIsLoadingMedicos(false);
+
+    console.log('✅ Médicos cargados:', data);
+    setMedicos(data || []);
+  } catch (error) {
+    console.error('❌ Error completo al cargar médicos:', error);
+    toast.error('Error al cargar médicos');
   }
 };
 
@@ -2131,7 +2097,7 @@ const FiltrosHistorial = () => (
       </div>
     </div>
     <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center">Balance Histórico</h3>
+      <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
       <div className="h-64">
         <Pie data={chartDataHistorial.distribucionGeneral} />
       </div>
@@ -2339,11 +2305,10 @@ const agregarRegistro = async () => {
 
 
 // Filtrar pacientes basado en la búsqueda
-const filteredPacientes = query.trim() === ''
+const filteredPacientes = query === ''
   ? pacientes
   : pacientes.filter((paciente) => {
-      const fullName = `${paciente.nombres} ${paciente.apellido_paterno}`.toLowerCase();
-      return fullName.includes(query.toLowerCase());
+      return paciente.nombre.toLowerCase().includes(query.toLowerCase());
     });
   
 
@@ -2353,13 +2318,13 @@ const filteredPacientes = query.trim() === ''
 
 <div className="bg-white rounded-xl shadow-md overflow-hidden mb-3">
         <div 
-          className="p-6 text-white"
+          className="p-4 md:p-6 text-white"
           style={{ backgroundColor: colors.primary[500] }}
         >
-          <h1 className="text-2xl md:text-2xl font-bold">Gestion Financiera</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Gestión Financiera</h1>
           
         </div>
-      <div className="grid gap-4 sm:gap-6">
+      <div className="p-3 md:p-6 space-y-4 md:space-y-6">
         {/* Filtros y resumen */}
         <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
           <div className="w-full sm:w-auto">
@@ -2375,7 +2340,7 @@ const filteredPacientes = query.trim() === ''
           
           <button
             onClick={() => setHistorialVisible(!historialVisible)}
-            className="w-full sm:w-auto px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center"
+            className="w-full sm:w-auto px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
             style={{
               backgroundColor: historialVisible ? colorPrimaryDark : colorSecondary,
               color: historialVisible ? 'white' : colorPrimaryDark
@@ -2399,207 +2364,166 @@ const filteredPacientes = query.trim() === ''
           </button>
         </div>
 
-        {/* Formulario de registro*/}
-
-
- <div className="p-3 sm:p-4 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 items-end">
-
-
-    {/* Tipo */}
-    <div className="md:col-span-1">
-      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Tipo</label>
-      <select
-        value={tipoMovimiento}
-        onChange={(e) => setTipoMovimiento(e.target.value as 'Ingreso' | 'Egreso' | 'Ajuste')}
-        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-        style={{ borderColor: colorPrimaryLight }}
-      >
-        <option value="Ingreso">Ingreso</option>
-        <option value="Egreso">Egreso</option>
-        <option value="Ajuste">Ajuste</option>
-      </select>
-    </div>
-
- {/* Categoría */}
-<div className="md:col-span-1">
-  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
-    Categoría
-  </label>
-  <select
-    value={tipoMovimientoId || ''}
-    onChange={(e) => setTipoMovimientoId(Number(e.target.value|| null))}
-    className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-    disabled={tiposMovimiento.length === 0 || isLoading}
-  >
-    {isLoading ? (
-      <option value="">Cargando categorías...</option>
-    ) : tiposMovimiento.length === 0 ? (
-      <option value="">No hay categorías disponibles</option>
-    ) : (
-      <>
-        <option value="">Seleccione categoría</option>
-        {tiposMovimiento.map((t) => (
-          <option key={t.id} value={t.id}>{t.nombre}</option>
-        ))}
-      </>
-    )}
-  </select>
-</div>
-
-{/* Médico */}
-{/* Médico */}
-<div className="md:col-span-1">
-  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
-    Médico {isLoading && "(Cargando...)"}
-  </label>
-  {errorMedicos ? (
-    <p className="text-red-500 text-sm">{errorMedicos}</p>
-  ) : (
-    <select
-  value={medicoId || ''}
-  onChange={(e) => {
-    const selectedId = e.target.value;
-    console.log("Selected:", selectedId);
-    setMedicoId(selectedId || null); // Guarda el string directamente si es UUID
-  }}
-  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-  disabled={medicos.length === 0 || isLoading}
->
-  {isLoading ? (
-    <option value="">Cargando médicos...</option>
-  ) : medicos.length === 0 ? (
-    <option value="">No hay médicos disponibles</option>
-  ) : (
-    <>
-      <option value="">Seleccione médico</option>
-      {medicos.map((medico) => (
-        <option key={medico.id} value={medico.id}>
-          {medico.nombre}
-        </option>
-      ))}
-    </>
-  )}
-</select>
-  )}
-</div>
-
-{/* Paciente con búsqueda */}
-<div className="md:col-span-2">
-  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
-    Paciente
-  </label>
-  <div className="relative">
-    <input
-      type="text"
-      value={busquedaPaciente}
-      onChange={(e) => {
-        setBusquedaPaciente(e.target.value);
-        setShowDropdown(true);
-      }}
-      onFocus={() => setShowDropdown(true)}
-      onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Cierra el dropdown con un pequeño retraso
-      placeholder="Buscar por nombre o apellido..."
-      className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
-    />
-    
-    {busquedaPaciente && (
-      <div className="absolute right-2 top-2">
-        <button 
-          onClick={() => {
-            setBusquedaPaciente('');
-            setPacienteId(null);
-          }}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    )}
-    
-    {showDropdown && (
-      <div className="absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-300 max-h-60 overflow-y-auto">
-        {pacientes
-          .filter(p => 
-            `${p.nombres} ${p.apellido_paterno}`
-              .toLowerCase()
-              .includes(busquedaPaciente.toLowerCase())
-          )
-          .map((paciente) => (
-            <div
-              key={paciente.id}
-              className={`p-2 hover:bg-blue-50 cursor-pointer ${pacienteId === paciente.id ? 'bg-blue-100' : ''}`}
-              onClick={() => {
-                setPacienteId(paciente.id);
-                setBusquedaPaciente(`${paciente.nombres} ${paciente.apellido_paterno}`);
-                setShowDropdown(false);
-              }}
-            >
-              {paciente.nombres} {paciente.apellido_paterno}
+        {/* Formulario de registro */}
+        <div className="bg-gray-50 p-3 md:p-4 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 md:gap-4">
+            {/* Tipo */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Tipo</label>
+              <select
+                value={tipoMovimiento}
+                onChange={(e) => setTipoMovimiento(e.target.value as 'Ingreso' | 'Egreso' | 'Ajuste')}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+                style={{ borderColor: colorPrimaryLight }}
+              >
+                <option value="Ingreso">Ingreso</option>
+                <option value="Egreso">Egreso</option>
+                <option value="Ajuste">Ajuste</option>
+              </select>
             </div>
-          ))}
-        {pacientes.filter(p => 
-          `${p.nombres} ${p.apellido_paterno}`
-            .toLowerCase()
-            .includes(busquedaPaciente.toLowerCase())
-        ).length === 0 && (
-          <div className="p-2 text-gray-500">No se encontraron pacientes</div>
-        )}
-      </div>
-    )}
-  </div>
-</div>
 
-{/* Forma de Pago */}
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Forma de Pago</label>
-      <select
-        value={formaPago}
-        onChange={(e) =>
-          setFormaPago(e.target.value as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS')
-        }
-        className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-      >
-        <option value="EFECTIVO">Efectivo</option>
-        <option value="TARJETA">Tarjeta</option>
-        <option value="TRANSFERENCIA">Transferencia</option>
-        <option value="YAPE">Yape</option>
-        <option value="PLIN">Plin</option>
-        <option value="OTROS">Otros</option>
-      </select>
-    </div>
+            {/* Categoría */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Categoría</label>
+              <select
+                value={tipoMovimientoId || ''}
+                onChange={(e) => setTipoMovimientoId(Number(e.target.value) || null)}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+                disabled={tiposMovimiento.length === 0 || isLoading}
+              >
+                {isLoading ? (
+                  <option value="">Cargando...</option>
+                ) : tiposMovimiento.length === 0 ? (
+                  <option value="">No hay categorías</option>
+                ) : (
+                  <>
+                    <option value="">Seleccione categoría</option>
+                    {tiposMovimiento.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
 
-{/* Moneda */}
-            <div className="md:col-span-1">
+            {/* Médico */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Médico</label>
+              <select
+                value={medicoId || ''}
+                onChange={(e) => {
+                  console.log('🔄 Médico seleccionado:', e.target.value);
+                  setMedicoId(e.target.value);
+                }}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+              >
+                <option value="">Seleccionar médico</option>
+                {medicos.map((medico) => {
+                  //console.log('📋 Renderizando médico:', medico);
+                  return (
+                    <option key={medico.id} value={medico.id}>
+                      {medico.nombre}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Paciente */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Paciente</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={busquedaPaciente}
+                  onChange={(e) => {
+                   // console.log('🔍 Buscando paciente:', e.target.value);
+                    setBusquedaPaciente(e.target.value);
+                    setShowDropdown(true);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
+                  placeholder="Buscar paciente..."
+                  className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+                />
+                {showDropdown && busquedaPaciente && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                    {pacientes
+                      .filter(p => {
+                        if (!p || !p.nombre) {
+                          console.log('⚠️ Paciente inválido:', p);
+                          return false;
+                        }
+                        const matches = p.nombre.toLowerCase().includes(busquedaPaciente.toLowerCase());
+                        //console.log('🔍 Filtrando paciente:', { nombre: p.nombre, matches });
+                        return matches;
+                      })
+                      .map(p => {
+                        //console.log('📋 Renderizando opción de paciente:', p);
+                        return (
+                          <div
+                            key={p.id}
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                            onClick={() => {
+                              console.log('👆 Paciente seleccionado:', p);
+                              setPacienteId(p.id);
+                              setBusquedaPaciente(p.nombre);
+                              setShowDropdown(false);
+                            }}
+                          >
+                            {p.nombre}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Forma de Pago */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Forma de Pago</label>
+              <select
+                value={formaPago}
+                onChange={(e) => setFormaPago(e.target.value as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS')}
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="TRANSFERENCIA">Transferencia</option>
+                <option value="YAPE">Yape</option>
+                <option value="PLIN">Plin</option>
+                <option value="OTROS">Otros</option>
+              </select>
+            </div>
+
+            {/* Moneda */}
+            <div className="lg:col-span-1">
               <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Moneda</label>
               <select
                 value={tipoMoneda}
                 onChange={(e) => setTipoMoneda(e.target.value as 'SOLES' | 'USD')}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
               >
                 <option value="SOLES">Soles</option>
                 <option value="USD">Dólares</option>
               </select>
             </div>
 
-
-{/* Descripción */}
-    <div className="md:col-span-3">
-      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Descripción</label>
-      <input
-        type="text"
-        value={descripcion}
-        onChange={(e) => setDescripcion(e.target.value)}
-        placeholder="Descripción"
-        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-        style={{ borderColor: colorPrimaryLight }}
-      />
-    </div>
+            {/* Descripción */}
+            <div className="lg:col-span-3">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Descripción</label>
+              <input
+                type="text"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Descripción del movimiento"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+                style={{ borderColor: colorPrimaryLight }}
+              />
+            </div>
 
             {/* Valor */}
-            <div className="md:col-span-2">
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
                 Valor ({tipoMoneda === 'USD' ? 'USD' : 'S/'})
               </label>
@@ -2609,7 +2533,7 @@ const filteredPacientes = query.trim() === ''
                 value={valor}
                 onChange={handleValorChange}
                 placeholder="0.00"
-                className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
                 style={{ borderColor: colorPrimaryLight }}
               />
               {tipoMoneda === 'USD' && valor && !isNaN(parseFloat(valor)) && (
@@ -2618,384 +2542,259 @@ const filteredPacientes = query.trim() === ''
                 </p>
               )}
             </div>
-    
-  
-    {/* Nº Factura */}
-    <div className="md:col-span-1">
-      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nº Factura</label>
-      <input
-        type="text"
-        value={numeroFactura}
-        onChange={(e) => setNumeroFactura(e.target.value)}
-        placeholder="(Opcional)"
-        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-        style={{ borderColor: colorPrimaryLight }}
-      />
-    </div>
-  </div>
 
-  <div className="mt-4 flex justify-end">
-    <button
-      onClick={agregarRegistro}
-      disabled={isLoading || !valor || !tipoMovimientoId}
-      className="px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center"
-      style={{
-        backgroundColor: colorPrimary,
-        color: 'white',
-        opacity: isLoading  || !valor || !tipoMovimientoId ? 0.5 : 1
-      }}
-    >
-      {isLoading ? (
-        <>
-          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-15" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="9"></circle>
-            <path className="opacity-15" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Procesando...
-        </>
-      ) : 'Agregar Registro'}
-    </button>
-  </div>
+            {/* Nº Factura */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nº Factura</label>
+              <input
+                type="text"
+                value={numeroFactura}
+                onChange={(e) => setNumeroFactura(e.target.value)}
+                placeholder="(Opcional)"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+                style={{ borderColor: colorPrimaryLight }}
+              />
+            </div>
+          </div>
+
+          {/* Botón Agregar */}
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={agregarRegistro}
+              disabled={isLoading || !valor || !tipoMovimientoId}
+              className="w-full sm:w-auto px-6 py-2 rounded-lg text-sm font-medium flex items-center justify-center transition-colors disabled:opacity-50"
+              style={{
+                backgroundColor: colorPrimary,
+                color: 'white',
+                opacity: isLoading || !valor || !tipoMovimientoId ? 0.5 : 1
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-15" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Procesando...
+                </>
+              ) : 'Agregar Registro'}
+            </button>
+          </div>
         </div>
-
-
 
         {/* Registros del día */}
-<div>
-  {/* Encabezado de sección */}
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-    <h3 className="text-lg font-semibold text-primary-dark">Movimientos del día</h3>
-    <div className="px-3 py-1 rounded-lg bg-secondary">
-      <p className="text-sm font-medium text-primary-dark">
-        Balance del día: 
-        <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {formatMoneda(totalDia)}
-        </span>
-      </p>
-    </div>
-  </div>
+        <div className="mt-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Movimientos del día</h3>
+            <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+              <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
+                Balance del día: 
+                <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatMoneda(totalDia)}
+                </span>
+              </p>
+            </div>
+          </div>
 
-  {/* Contenido */}
-  {isLoading && registros.length === 0 ? (
-    <div className="flex justify-center items-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-400 border-t-transparent"></div>
-    </div>
-  ) : registros.length === 0 ? (
-    <p className="text-sm text-center text-gray-500 py-6">No hay registros para esta fecha.</p>
-  ) : (
-    <div className="overflow-x-auto border rounded-lg shadow-sm">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {[
-              'Fecha',  'Tipo', 'Categoría',
-              'Médico','Paciente' ,'Tipo Pago', 'Valor',
-              'Factura', 'Usuario', 'Acciones'
-            ].map((col) => (
-              <th
-                key={col}
-                className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary-dark whitespace-nowrap"
-              >
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-100">
-          {registros.map((registro) => {
-            const tipo = registro.tipo_movimiento?.tipo || 'DESC';
-            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo);
-            const { fecha: fechaISO } = formatDateTime(registro.fecha);
-
-            return (
-              <tr key={registro.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2 text-sm text-gray-700">{fechaISO}</td>
-                
-                <td className="px-3 py-2">
-                  <span className={`px-2 py-1 text-xs rounded-full font-medium
-                    ${tipo === 'Ingreso'
-                      ? 'bg-green-100 text-green-800'
-                      : tipo === 'Egreso'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'}
-                  `}>
-                    {tipo}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-900">
-                  {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                  {registro.descripcion && (
-                    <p className="text-xs text-gray-500 truncate max-w-xs" title={registro.descripcion}>
-                      {registro.descripcion}
-                    </p>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-900">{registro.medico?.nombre || '-'}</td>
-                <td className="px-3 py-2 text-sm text-gray-900">  {registro.paciente?.nombreCompleto || '-'}</td>
-                <td className="px-3 py-2 text-sm text-gray-900">{registro.forma_pago || '-'}</td>
-                <td className={`px-3 py-2 text-sm font-semibold ${valorColor}`}>
-                  {valorDisplay}
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-600">{registro.numero_factura || '-'}</td>
-                <td className="px-3 py-2 text-sm text-gray-700">{registro.usuario?.nombre || 'Desconocido'}</td>
-                <td className="px-3 py-2 text-sm">
-                  <button
-                    onClick={() => eliminarRegistro(registro.id)}
-                    className="text-red-600 hover:text-red-800 flex items-center"
-                    title="Eliminar registro"
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                    <span className="sr-only sm:not-sr-only">Eliminar</span>
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  )}
-</div>
-
-
-        {/* Gráfico de distribución */}
-{chartData && (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-    {/* Gráfico de Ingresos por categoría - Más pequeño */}
-    <div className="bg-white p-3 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
-        Ingresos por Categoría
-      </h3>
-      <div className="h-48"> {/* Altura reducida */}
-        <Pie
-          data={chartData.ingresosPorCategoria}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom', // Cambiado a bottom para ahorrar espacio
-                labels: {
-                  boxWidth: 10, // Tamaño reducido de los ítems de leyenda
-                  font: {
-                    size: 9 // Tamaño de fuente reducido
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
-                  }
-                }
-              }
-            }
-          }}
-        />
-      </div>
-    </div>
-
-    {/* Gráfico de Egresos por categoría - Más pequeño */}
-    <div className="bg-white p-3 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
-        Egresos por Categoría
-      </h3>
-      <div className="h-48"> {/* Altura reducida */}
-        <Pie
-          data={chartData.egresosPorCategoria}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  boxWidth: 10,
-                  font: {
-                    size: 9
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
-                  }
-                }
-              }
-            }
-          }}
-        />
-      </div>
-    </div>
-
-    {/* Gráfico de distribución general - Más pequeño */}
-   <div className="bg-white p-3 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center" style={{ color: colorPrimaryDark }}>
-        Ingresos vs Egresos
-      </h3>
-      <div className="h-48">
-        <Pie
-          data={{
-            ...chartData.distribucionGeneral,
-            datasets: [{
-              ...chartData.distribucionGeneral.datasets[0],
-               backgroundColor: ['#81C784', '#E57373'],// Verde para ingresos, rojo para egresos
-              borderColor: ['#388E3C', '#D32F2F']     // Verde oscuro y rojo oscuro para bordes
-            }]
-          }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'bottom',
-                labels: {
-                  boxWidth: 10,
-                  font: {
-                    size: 9
-                  }
-                }
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    return `${context.label}: ${formatMoneda(context.raw as number)}`;
-                  }
-                }
-              }
-            }
-          }}
-        />
-      </div>
-    </div>
-  </div>
-)}
+          {/* Tabla de registros */}
+          <div className="overflow-x-auto rounded-lg border" style={{ borderColor: colorPrimaryLight }}>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  {[
+                    'Fecha', 'Tipo', 'Categoría', 'Médico', 'Paciente',
+                    'Forma Pago', 'Valor', 'Factura', 'Usuario', 'Acciones'
+                  ].map((col) => (
+                    <th
+                      key={col}
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                      style={{ color: colorPrimaryDark }}
+                    >
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {isLoading && registros.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-4 text-center">
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : registros.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-3 py-4 text-center text-sm text-gray-500">
+                      No hay registros para esta fecha
+                    </td>
+                  </tr>
+                ) : (
+                  registros.map((registro) => {
+                    const tipo = registro.tipo_movimiento?.tipo;
+                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
+                    const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
+                    
+                    return (
+                      <tr key={registro.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {fechaISO}
+                          <br />
+                          <span className="text-xs">{hora}</span>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            tipo === 'Ingreso' 
+                              ? 'bg-green-100 text-green-800' 
+                              : tipo === 'Egreso' 
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {tipo || 'DESC'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                          {registro.descripcion && (
+                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.medico?.nombre || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.paciente?.nombreCompleto || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.forma_pago || '-'}
+                        </td>
+                        <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
+                          {valorDisplay}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.numero_factura || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.usuario?.nombre || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          <button
+                            onClick={() => eliminarRegistro(registro.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Historial */}
-      
-{historialVisible && (
-  <div className="mt-6 sm:mt-8">
-    {/* Filtros de fecha */}
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-      <div>
-        <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
-        <input
-          type="date"
-          value={fechaInicioHistorial}
-          onChange={(e) => setFechaInicioHistorial(e.target.value)}
-          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
-        <input
-          type="date"
-          value={fechaFinHistorial}
-          onChange={(e) => setFechaFinHistorial(e.target.value)}
-          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-        />
-      </div>
-      <div className="flex items-end">
-        <button
-          onClick={cargarHistorial}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Aplicar Filtros
-        </button>
-      </div>
-    </div>
-
-    {/* Encabezado del historial */}
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
-      <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Historial de Movimientos</h3>
-      <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-        <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
-          Balance del período: 
-          <span className={`ml-2 text-lg ${balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatMoneda(balanceMes)}
-          </span>
-        </p>
-      </div>
-    </div>
-
-    {/* Gráficos del historial */}
-    {chartDataHistorial && (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-sm font-semibold mb-2 text-center">Ingresos por Categoría</h3>
-          <div className="h-64">
-            <Pie data={chartDataHistorial.ingresosPorCategoria} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-sm font-semibold mb-2 text-center">Egresos por Categoría</h3>
-          <div className="h-64">
-            <Pie data={chartDataHistorial.egresosPorCategoria} />
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
-          <div className="h-64">
-            <Pie data={chartDataHistorial.distribucionGeneral} />
-          </div>
-        </div>
-      </div>
-    )}
-
-    {/* Tabla de historial */}
-    {historialFiltrado.length === 0 ? (
-      <p className="text-sm text-gray-500">No hay registros históricos para el período seleccionado</p>
-    ) : (
-      <div className="space-y-6 sm:space-y-8">
-        {historialFiltrado.map((anoData) => (
-          <div key={anoData.ano} className="border rounded-lg overflow-hidden" style={styles.card}>
-            <div className="px-4 py-2 border-b" style={{ backgroundColor: colorSecondary }}>
-              <h4 className="font-medium" style={{ color: colorPrimaryDark }}>{anoData.ano}</h4>
+        {historialVisible && (
+          <div className="mt-6 space-y-6">
+            {/* Filtros de fecha */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
+                <input
+                  type="date"
+                  value={fechaInicioHistorial}
+                  onChange={(e) => setFechaInicioHistorial(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
+                <input
+                  type="date"
+                  value={fechaFinHistorial}
+                  onChange={(e) => setFechaFinHistorial(e.target.value)}
+                  className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={cargarHistorial}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Aplicar Filtros
+                </button>
+              </div>
             </div>
-            
-            <div className="divide-y divide-gray-200">
-              {anoData.meses.map((mesData) => {
-                const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
-                  .toLocaleString('es-ES', { month: 'long' });
-                
-                const balanceMes = mesData.registros.reduce((sum, reg) => {
-                  const tipo = reg.tipo_movimiento?.tipo;
-                  return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
-                }, 0);
-                
-                return (
-                  <div key={`${anoData.ano}-${mesData.mes}`} className="bg-white">
-                    <div className="px-3 sm:px-4 py-2 sm:py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0" style={{ backgroundColor: colorSecondary }}>
-                      <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
-                        {nombreMes}
-                      </span>
-                      <span className={`text-sm font-medium ${
-                        balanceMes >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        Balance: {formatMoneda(balanceMes)}
-                      </span>
-                    </div>
-                    
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
-                          
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Paciente</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Médico</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Forma Pago</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Moneda</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
+
+            {/* Gráficos */}
+            {chartDataHistorial && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-sm font-semibold mb-2 text-center">Ingresos por Categoría</h3>
+                  <div className="h-48 md:h-64">
+                    <Pie data={chartDataHistorial.ingresosPorCategoria} />
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-sm font-semibold mb-2 text-center">Egresos por Categoría</h3>
+                  <div className="h-48 md:h-64">
+                    <Pie data={chartDataHistorial.egresosPorCategoria} />
+                  </div>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow">
+                  <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
+                  <div className="h-48 md:h-64">
+                    <Pie data={chartDataHistorial.distribucionGeneral} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Tabla de historial */}
+            <div className="overflow-x-auto rounded-lg border" style={{ borderColor: colorPrimaryLight }}>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {[
+                      'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
+                      'Forma Pago', 'Moneda', 'Valor', 'Factura'
+                    ].map((col) => (
+                      <th
+                        key={col}
+                        className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                        style={{ color: colorPrimaryDark }}
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {historialFiltrado.map((anoData) => (
+                    anoData.meses.map((mesData) => {
+                      const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
+                        .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+                      
+                      return (
+                        <React.Fragment key={`${anoData.ano}-${mesData.mes}`}>
+                          <tr className="bg-gray-50">
+                            <td colSpan={9} className="px-3 py-2">
+                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
+                                <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
+                                  {nombreMes}
+                                </span>
+                                <span className={`text-sm font-medium ${
+                                  balanceMes >= 0 ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  Balance: {formatMoneda(balanceMes)}
+                                </span>
+                              </div>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
                           {mesData.registros.map((registro) => {
                             const tipo = registro.tipo_movimiento?.tipo;
                             const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
@@ -3006,7 +2805,6 @@ const filteredPacientes = query.trim() === ''
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                   {fechaISO}
                                 </td>
-                                
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                                     tipo === 'Ingreso' 
@@ -3020,9 +2818,6 @@ const filteredPacientes = query.trim() === ''
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                                  {registro.descripcion && (
-                                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
-                                  )}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.paciente?.nombreCompleto || '-'}
@@ -3034,31 +2829,26 @@ const filteredPacientes = query.trim() === ''
                                   {registro.forma_pago || '-'}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.moneda}
+                                  {tipoMoneda}
                                 </td>
-                                <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                                <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
                                   {valorDisplay}
                                 </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                                <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.numero_factura || '-'}
                                 </td>
                               </tr>
                             );
                           })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })}
+                        </React.Fragment>
+                      );
+                    })
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        ))}
-      </div>
-    )}
-  </div>
-)}
-
+        )}
       </div>
     </div>
   );
