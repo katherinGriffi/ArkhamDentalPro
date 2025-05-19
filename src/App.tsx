@@ -1612,7 +1612,14 @@ function MiCaja({ userId }: { userId: string }) {
   const [chartData, setChartData] = useState<{ingresos: any, egresos: any} | null>(null);
   const [medicoId, setMedicoId] = useState<number | null>(null);
   const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
-  const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
+ const [medicos, setMedicos] = useState<Array<{
+  id: number;
+  nombres: string;
+  apellido_paterno: string;
+  apellido_materno?: string;
+}>>([]);
+const [isLoadingMedicos, setIsLoadingMedicos] = useState(true);
+const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
   const [busquedaPaciente, setBusquedaPaciente] = useState('');
   const [pacienteId, setPacienteId] = useState<string | null>(null);
   const [pacientes, setPacientes] = useState<{id: string, nombre: string}[]>([]);
@@ -1632,40 +1639,46 @@ function MiCaja({ userId }: { userId: string }) {
     egresosPorCategoria: any;
     distribucionGeneral: any;
   } | null>(null);
-
+const [busquedaMedico, setBusquedaMedico] = useState('');
+const [showMedicoDropdown, setShowMedicoDropdown] = useState(false);
  // Función para obtener el ID de la categoría "COMISIÓN TARJETA" o similar
-   const obtenerIdCategoriaImpuestos = async () => {
+  const obtenerIdCategoriaImpuestos = async () => {
+    const NOMBRE_CATEGORIA = 'COMISIÓN TARJETA'; // Nombre exacto a buscar/crear
+    
     try {
-      const { data, error } = await supabase
-        .from('tipos_movimiento')
-        .select('id')
-        .ilike('nombre', '%Impuestos y Tributos%')
-        .eq('tipo', 'Egreso')
-        .single();
+        // 1. Intentar encontrar la categoría existente
+        const { data: categoriaExistente, error: errorBusqueda } = await supabase
+            .from('tipos_movimiento')
+            .select('id')
+            .eq('nombre', NOMBRE_CATEGORIA)
+            .eq('tipo', 'Egreso')
+            .single();
 
-      if (error) throw error;
-      
-      // Si no existe la categoría, la creamos
-      if (!data) {
-        const { data: newCategory } = await supabase
-          .from('tipos_movimiento')
-          .insert([{
-            nombre: 'Impuestos y Tributos',
-            tipo: 'Egreso',
-            activo: true
-          }])
-          .select()
-          .single();
+        // Si existe, retornar el ID
+        if (categoriaExistente) return categoriaExistente.id;
         
-        return newCategory?.id || null;
-      }
-      
-      return data.id;
+        // 2. Si no existe, crear la categoría
+        const { data: nuevaCategoria, error: errorCreacion } = await supabase
+            .from('tipos_movimiento')
+            .insert([{
+                nombre: NOMBRE_CATEGORIA,
+                tipo: 'Egreso',
+                descripcion: 'Comisiones por pagos con tarjeta',
+                activo: true,
+                es_comision: true
+            }])
+            .select('id')
+            .single();
+
+        if (errorCreacion) throw errorCreacion;
+        
+        return nuevaCategoria.id;
+        
     } catch (error) {
-      console.error('Error al buscar categoría de impuestos:', error);
-      return null;
+        console.error('Error en obtenerIdCategoriaImpuestos:', error);
+        return null;
     }
-  };
+};
 
   // Función para formatear el valor según el tipo de movimiento
   const formatValor = (valor: number, tipo: 'Ingreso' | 'Egreso' | 'Ajuste') => {
@@ -1739,6 +1752,7 @@ const formatDateTime = (dateString: string) => {
     cargarTiposMovimiento();
   }, [tipoMovimiento]);
 
+   // Cargar PACIENTES
 useEffect(() => {
   const cargarPacientes = async () => {
     try {
@@ -1780,6 +1794,44 @@ useEffect(() => {
 
 
  // Función para obtener médicos con manejo de errores mejorado
+// Función mejorada para cargar médicos
+const cargarMedicos = async () => {
+  setIsLoadingMedicos(true);
+  setErrorMedicos(null);
+  
+  try {
+    console.log('Iniciando carga de médicos...'); // Debug
+    
+    const { data, error, status } = await supabase
+      .from('medicos') // Verifica que coincida con tu tabla
+      .select('id, nombre')
+      
+      .order('nombre', { ascending: true });
+
+    console.log('Respuesta de Supabase:', { data, error, status }); // Debug
+
+    if (error) {
+      throw new Error(`Error ${status}: ${error.message}`);
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn('No se encontraron médicos activos');
+      setMedicos([]);
+      return;
+    }
+    
+    setMedicos(data);
+  } catch (error: any) {
+    console.error('Error completo al cargar médicos:', error);
+    setErrorMedicos(`Error al cargar médicos: ${error.message}`);
+    setMedicos([]);
+  } finally {
+    setIsLoadingMedicos(false);
+  }
+};
+
+
+ // Función para obtener médicos con manejo de errores mejorado
   useEffect(() => {
     const cargarMedicos = async () => {
       try {
@@ -1802,6 +1854,7 @@ useEffect(() => {
     
     cargarMedicos();
   }, []);
+
 
     // Preparar datos para el gráfico
 const prepararDatosGrafico = (registros: RegistroCaja[]) => {
@@ -2105,8 +2158,8 @@ const FiltrosHistorial = () => (
 
   // Agregar nuevo registro
 const agregarRegistro = async () => {
-    if (!descripcion || !valor) {
-      toast.error('Descripción y valor son requeridos');
+    if ( !valor) {
+      toast.error('Valor es requerido');
       return;
     }
     if (!tipoMovimientoId) {
@@ -2162,31 +2215,50 @@ const agregarRegistro = async () => {
       if (errorRegistro) throw errorRegistro;
 
       // Si es un ingreso con tarjeta, agregar el egreso del 5%
-      if (tipoMovimientoSeleccionado === 'Ingreso' && formaPago === 'TARJETA') {
-        const comisionTarjeta = Math.abs(valorNumerico) * 0.05;
-        const idCategoriaImpuestos = await obtenerIdCategoriaImpuestos();
+ if (tipoMovimientoSeleccionado === 'Ingreso' && formaPago === 'TARJETA') {
+    // Calcular comisión con 2 decimales
+    const comisionTarjeta = parseFloat((Math.abs(valorNumerico) * 0.05).toFixed(2));
+    
+    try {
+        // Validar que tenemos un ID de registro principal
+        if (!registroInsertado?.id) {
+            throw new Error('Falta ID del registro principal para la relación');
+        }
 
-        if (!idCategoriaImpuestos) {
-          toast('No se pudo crear/obtener la categoría de impuestos', { 
-            type: 'error',
-            autoClose: 5000
-          });
-        } else {
-          await supabase
+        // Insertar directamente usando el ID conocido (116)
+        const { error: errorComision } = await supabase
             .from('registros_caja')
             .insert([{
-              fecha: fechaISO, // Misma fecha formateada
-              tipo_movimiento_id: idCategoriaImpuestos,
-              descripcion: `Encargos por tarjeta (${descripcion})`,
-              valor: -comisionTarjeta,
-              user_id: userId,
-              medico_id: medicoId,
-              forma_pago: 'TARJETA',
-              paciente_id: pacienteId,
-              relacionado_con: registroInsertado.id
+                fecha: fechaISO,
+                tipo_movimiento_id: 116, // ID fijo de Impuestos
+                descripcion: `Comisión tarjeta (${descripcion.substring(0, 45)})`, // Limitar a 50 chars
+                valor: -comisionTarjeta, // Valor negativo (egreso)
+                user_id: userId,
+                medico_id: medicoId || null,
+                forma_pago: 'TARJETA',
+                paciente_id: pacienteId || null,
+                //relacionado_con: registroInsertado.id
             }]);
+
+        if (errorComision) {
+            console.error('Error al insertar comisión:', {
+                message: errorComision.message,
+                details: errorComision.details,
+                hint: errorComision.hint
+            });
+            throw errorComision;
         }
-      }
+
+        toast.success(`✓ Ingreso + comisión de S/${comisionTarjeta} registrados`);
+        
+    } catch (error: any) {
+        console.error('Error en comisión por tarjeta:', {
+            error: error,
+            stack: error.stack
+        });
+        toast.error(`✓ Ingreso registrado ✗ Comisión falló: ${error.message}`);
+    }
+}
 
       toast.success('Registro agregado correctamente');
       // Resetear formulario
@@ -2376,31 +2448,40 @@ const filteredPacientes = query.trim() === ''
 </div>
 
 {/* Médico */}
+{/* Médico */}
 <div className="md:col-span-1">
   <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
-    Médico
+    Médico {isLoading && "(Cargando...)"}
   </label>
-  <select
+  {errorMedicos ? (
+    <p className="text-red-500 text-sm">{errorMedicos}</p>
+  ) : (
+    <select
   value={medicoId || ''}
-  onChange={(e) => setMedicoId(e.target.value ? Number(e.target.value) : null)}
+  onChange={(e) => {
+    const selectedId = e.target.value;
+    console.log("Selected:", selectedId);
+    setMedicoId(selectedId || null); // Guarda el string directamente si es UUID
+  }}
   className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
   disabled={medicos.length === 0 || isLoading}
-  >
-    {isLoading ? (
-      <option value="">Cargando médicos...</option>
-    ) : medicos.length === 0 ? (
-      <option value="">No hay médicos disponibles</option>
-    ) : (
-      <>
-        <option value="">Seleccione médico</option>
-        {medicos.map((medico) => (
-          <option key={medico.id} value={medico.id}>
-            {medico.nombre}
-          </option>
-        ))}
-      </>
-    )}
-  </select>
+>
+  {isLoading ? (
+    <option value="">Cargando médicos...</option>
+  ) : medicos.length === 0 ? (
+    <option value="">No hay médicos disponibles</option>
+  ) : (
+    <>
+      <option value="">Seleccione médico</option>
+      {medicos.map((medico) => (
+        <option key={medico.id} value={medico.id}>
+          {medico.nombre}
+        </option>
+      ))}
+    </>
+  )}
+</select>
+  )}
 </div>
 
 {/* Paciente con búsqueda */}
@@ -2471,7 +2552,7 @@ const filteredPacientes = query.trim() === ''
   </div>
 </div>
 
-    {/* Forma de Pago */}
+{/* Forma de Pago */}
     <div className="md:col-span-2">
       <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Forma de Pago</label>
       <select
@@ -2490,7 +2571,7 @@ const filteredPacientes = query.trim() === ''
       </select>
     </div>
 
-     {/* Moneda */}
+{/* Moneda */}
             <div className="md:col-span-1">
               <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Moneda</label>
               <select
@@ -2504,7 +2585,7 @@ const filteredPacientes = query.trim() === ''
             </div>
 
 
-    {/* Descripción */}
+{/* Descripción */}
     <div className="md:col-span-3">
       <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Descripción</label>
       <input
@@ -2556,12 +2637,12 @@ const filteredPacientes = query.trim() === ''
   <div className="mt-4 flex justify-end">
     <button
       onClick={agregarRegistro}
-      disabled={isLoading || !descripcion || !valor || !tipoMovimientoId}
+      disabled={isLoading || !valor || !tipoMovimientoId}
       className="px-4 py-2 rounded-lg disabled:opacity-50 flex items-center justify-center"
       style={{
         backgroundColor: colorPrimary,
         color: 'white',
-        opacity: isLoading || !descripcion || !valor || !tipoMovimientoId ? 0.5 : 1
+        opacity: isLoading  || !valor || !tipoMovimientoId ? 0.5 : 1
       }}
     >
       {isLoading ? (
@@ -3126,6 +3207,7 @@ function PaginaPrincipal() {
                   : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
               }`}
               onClick={() => setActiveTab('registro')}
+              
               style={{
                 backgroundColor: activeTab === 'registro' ? colors.primary[600] : 'transparent',
                 color: activeTab === 'registro' ? 'white' : colors.primary[600]
