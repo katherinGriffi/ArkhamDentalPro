@@ -1,45 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import './index.css'; 
-import { Truck, Clock, MapPin, LogIn, LogOut, Calendar, User, MapPinned, Timer, FileText, Upload, Download, Table2Icon, Table, PanelsTopLeft, PersonStanding, PersonStandingIcon , Eye, EyeOff} from 'lucide-react';
+import { Truck, Clock, MapPin, LogIn, LogOut, Calendar, User, MapPinned, Timer, FileText, Upload, Download, Table2Icon, Table, PanelsTopLeft, PersonStanding, PersonStandingIcon , Eye, EyeOff, DollarSignIcon, BadgeDollarSignIcon} from 'lucide-react';
 import { supabase } from './lib/supabase';
 import toast, { Toaster } from 'react-hot-toast';
-import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'moment/locale/es';
-import { Event } from 'react-big-calendar';
-
+import { Combobox } from '@headlessui/react'; 
 import { Pie } from 'react-chartjs-2';
 import {   Chart as ChartJS,   ArcElement,   Tooltip,   Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title } from 'chart.js';
 
+ChartJS.register(  ArcElement,  Tooltip,  Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title);
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  Title
-);
-
-// Configuración del calendario
-const localizer = momentLocalizer(moment);
-moment.locale('es', {
-  months: 'Enero_Febrero_Marzo_Abril_Mayo_Junio_Julio_Agosto_Septiembre_Octubre_Noviembre_Diciembre'.split('_'),
-  weekdays: 'Domingo_Lunes_Martes_Miércoles_Jueves_Viernes_Sábado'.split('_')
-});
-
-function formatDuration(milliseconds:number) {
-  const seconds = Math.floor(milliseconds / 1000);
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
 
 // Custom Molar Tooth Icon
 const MolarIcon = ({ className = "w-8 h-8", stroke = "#801461", strokeWidth = 2 }) => (
@@ -70,36 +42,25 @@ const colorAccent = '#ff9e00';
 // Paleta de colores profesional basada en #4E023B
 const colors = {
   primary: {
-    50: '#F5E8F2',    100: '#EBD1E5',    200: '#D7A3CB',    300: '#C374B1',
-    400: '#AF4697',    500: '#4E023B', // Color principal
-    600: '#3E0230',    700: '#2F0125',    800: '#1F011A',    900: '#10000D'
+    50: '#F5E8F2',    100: '#EBD1E5',    200: '#D7A3CB',    300: '#C374B1',    400: '#AF4697',    500: '#4E023B',     600: '#3E0230',    700: '#2F0125',    800: '#1F011A',    900: '#10000D'
   },
   secondary: {
-    50: '#F8F1F6',    100: '#F1E3ED',    200: '#E3C7DB',
-    300: '#D5AAC9',    400: '#C78EB7',    500: '#801461', // Color secundario
-    600: '#660F4E',    700: '#4D0B3A',    800: '#330827',    900: '#1A0413'
+    50: '#F8F1F6',    100: '#F1E3ED',    200: '#E3C7DB',    300: '#D5AAC9',    400: '#C78EB7',    500: '#801461',     600: '#660F4E',    700: '#4D0B3A',    800: '#330827',    900: '#1A0413'
   },
   accent: {
-    50: '#FFF5E6',    100: '#FFEBCC',    200: '#FFD699',    300: '#FFC266',
-    400: '#FFAD33',    500: '#FF9E00', // Color de acento
-    600: '#CC7E00',    700: '#995F00',    800: '#663F00',    900: '#332000'
-  },
+    50: '#FFF5E6',    100: '#FFEBCC',    200: '#FFD699',    300: '#FFC266',    400: '#FFAD33',    500: '#FF9E00',   },
   neutral: {
-    50: '#FAFAFA',    100: '#F5F5F5',    200: '#EEEEEE',    300: '#E0E0E0',    400: '#BDBDBD',
-    500: '#9E9E9E',    600: '#757575',    700: '#616161',    800: '#424242',    900: '#212121'
+    50: '#FAFAFA',    100: '#F5F5F5',    200: '#EEEEEE',    300: '#E0E0E0',    400: '#BDBDBD',    500: '#9E9E9E',    600: '#757575',    700: '#616161',    800: '#424242',    900: '#212121'
   },
   success: {
-    50: '#E8F5E9',    100: '#C8E6C9',    200: '#A5D6A7',    300: '#81C784',    400: '#66BB6A',
-    500: '#4CAF50',    600: '#43A047',    700: '#388E3C',    800: '#2E7D32',    900: '#1B5E20'
+    50: '#E8F5E9',    100: '#C8E6C9',    200: '#A5D6A7',    300: '#81C784',    400: '#66BB6A',    500: '#4CAF50',    600: '#43A047',    700: '#388E3C',    800: '#2E7D32',    900: '#1B5E20'
   },
   warning: {
     50: '#FFF8E1',     100: '#FFECB3',    200: '#FFE082',    300: '#FFD54F',    400: '#FFCA28',    500: '#FFC107',    600: '#FFB300',    700: '#FFA000',
     800: '#FF8F00',    900: '#FF6F00'
   },
   error: {
-    50: '#FFEBEE',    100: '#FFCDD2',    200: '#EF9A9A',    300: '#E57373',
-    400: '#EF5350',    500: '#F44336',    600: '#E53935',
-    700: '#D32F2F',    800: '#C62828',    900: '#B71C1C'
+    50: '#FFEBEE',    100: '#FFCDD2',    200: '#EF9A9A',    300: '#E57373',    400: '#EF5350',    500: '#F44336',    600: '#E53935',    700: '#D32F2F',    800: '#C62828',    900: '#B71C1C'
   }
 };
 
@@ -191,19 +152,7 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
       throw new Error('Registro do usuário não localizado');
     }
 
-    // // Verifica se a conta está ativa
-    // const isActive = [true, 'true', 'ativo', '1', 1].includes(String(userData.activo).toLowerCase());
-
-    // if (!isActive) {
-    //   await supabase.auth.signOut();
-    //   console.warn('🚫 Conta desativada:', {
-    //     userId: user.id,
-    //     userEmail: user.email,
-    //     userActivo: userData.activo
-    //   });
-    //   throw new Error('Conta desativada. Contate o administrador.');
-    // }
-
+   
     // Armazenando dados no localStorage
     localStorage.setItem('sb-access-token', session.access_token);
     localStorage.setItem('sb-refresh-token', session.refresh_token);
@@ -232,15 +181,13 @@ const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
   }
 };
 
-
 const clearAuthStorage = () => {
   localStorage.removeItem('sb-access-token');
   localStorage.removeItem('sb-refresh-token');
   localStorage.removeItem('user');
 };
 
-
-
+// FORMULARIO LOGIN
 
   return (
     
@@ -318,32 +265,6 @@ const clearAuthStorage = () => {
   );
 }
 
-type MisBoletasProps = {
-  userId: string;
-};
-type Boleta = {
-  id: string;
-  user_id: string;
-  ano: number;
-  mes: number;
-  created_at: string;
-  arquivo_url: string;
-  // adicione outros campos se houver
-};
-
-type Ubicacion = {
-  latitude: number;
-  longitude: number;
-};
-type BoletaUsuario = {
-  id: string;
-  user_id: string;
-  created_at: string;
-  ano: number;
-  mes: number;
-  arquivo_url: string; 
-  // outros campos...
-};
 
 type User  ={
   id: string;
@@ -355,29 +276,6 @@ type User  ={
   role?: string;
 }
 
-type DiaLibre = {
-  id: string;
-  fecha: string;
-  user_id: string;
-  users?: User;
-  // ... otras propiedades
-};
-
-type Workspace = {
-  id: number;
-  name: string;
-  ativo: boolean;
-  // adicione outros campos se necessário
-};
-
-type TimeEntry = {
-  id: number;
-  user_id: string;
-  start_time: string;
-  end_time: string | null;
-  end_latitude?: number | null;
-  end_longitude?: number | null;
-};
 
 interface TipoMovimiento {
   id: number;
@@ -396,24 +294,65 @@ interface RegistroCaja {
   numero_factura: string | null;
   user_id: string;
   created_at: string;
-  medico_id?: number | null;
+  usuario?: {
+    nombre: string;
+  };
+  paciente?: {
+    id: string;
+    nombre: string;
+  };
   medico?: {
     id: number;
     nombre: string;
   };
   forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
 }
-
-
-interface Doctor {
+interface Paciente {
   id: string;
-  nombre_completo: string;
-  especialidad: string | null;
-  telefono: string | null;
+  dni: string;
+  nombres: string;
+  apellido_paterno: string;
+  apellido_materno: string | null;
+  fecha_nacimiento: string;
+  sexo: 'M' | 'F' | 'O';
+  celular: string;
+  telefono_fijo: string | null;
   correo: string | null;
-  fecha_ingreso: string;
-  porcentaje_comision: number | null;
+  direccion: string | null;
+  distrito: string | null;
+  grupo_sanguineo: string | null;
+  alergias: string | null;
+  enfermedades_cronicas: string | null;
+  medicamentos_actuales: string | null;
+  seguro_medico: string | null;
+  estado_civil: string | null;
+  ocupacion: string | null;
+  referencia: string | null;
+  historial_dental: string | null;
+  fecha_registro: string;
+  ultima_visita: string | null;
+  activo: boolean;
+}
+interface TipoMovimiento {
+  id: number;
+  nombre: string;
+  activo: boolean;
+  tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+}
+
+interface RegistroCaja {
+  id: string;
+  fecha: string;
+  tipo_movimiento_id: number;
+  tipo_movimiento?: TipoMovimiento;
+  descripcion: string;
+  valor: number;
+  numero_factura: string | null;
+  user_id: string;
   created_at: string;
+  usuario?: {
+    nombre: string;
+  };
 }
 
 const GestionDoctores: React.FC = () => {
@@ -844,34 +783,6 @@ const GestionDoctores: React.FC = () => {
     </div>
   );
 };
-
-
-interface Paciente {
-  id: string;
-  dni: string;
-  nombres: string;
-  apellido_paterno: string;
-  apellido_materno: string | null;
-  fecha_nacimiento: string;
-  sexo: 'M' | 'F' | 'O';
-  celular: string;
-  telefono_fijo: string | null;
-  correo: string | null;
-  direccion: string | null;
-  distrito: string | null;
-  grupo_sanguineo: string | null;
-  alergias: string | null;
-  enfermedades_cronicas: string | null;
-  medicamentos_actuales: string | null;
-  seguro_medico: string | null;
-  estado_civil: string | null;
-  ocupacion: string | null;
-  referencia: string | null;
-  historial_dental: string | null;
-  fecha_registro: string;
-  ultima_visita: string | null;
-  activo: boolean;
-}
 
 const GestionPaciente: React.FC = () => {
   // Estados
@@ -1683,32 +1594,10 @@ const pacientesToShow = showAllPatients ? filteredPacientes : filteredPacientes.
 };
 
 
-interface TipoMovimiento {
-  id: number;
-  nombre: string;
-  activo: boolean;
-  tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
-}
-
-interface RegistroCaja {
-  id: string;
-  fecha: string;
-  tipo_movimiento_id: number;
-  tipo_movimiento?: TipoMovimiento;
-  descripcion: string;
-  valor: number;
-  numero_factura: string | null;
-  user_id: string;
-  created_at: string;
-  usuario?: {
-    nombre: string;
-  };
-}
-
 function MiCaja({ userId }: { userId: string }) {
-  // Estados
+  // Estados (manteniendo los existentes)
   const [registros, setRegistros] = useState<RegistroCaja[]>([]);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState<string>(new Date().toISOString().split('T')[0]);
   const [descripcion, setDescripcion] = useState('');
   const [valor, setValor] = useState('');
   const [numeroFactura, setNumeroFactura] = useState('');
@@ -1722,8 +1611,61 @@ function MiCaja({ userId }: { userId: string }) {
   const [historialFiltrado, setHistorialFiltrado] = useState<{ano: number, meses: {mes: number, registros: RegistroCaja[]}[]}>([]);
   const [chartData, setChartData] = useState<{ingresos: any, egresos: any} | null>(null);
   const [medicoId, setMedicoId] = useState<number | null>(null);
-const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
-const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
+  const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
+  const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
+  const [busquedaPaciente, setBusquedaPaciente] = useState('');
+  const [pacienteId, setPacienteId] = useState<string | null>(null);
+  const [pacientes, setPacientes] = useState<{id: string, nombre: string}[]>([]);
+  const [tipoMoneda, setTipoMoneda] = useState<'SOLES' | 'USD'>('SOLES');
+  const [valorEnSoles, setValorEnSoles] = useState(0);
+  const [query, setQuery] = useState('');
+  const [selectedPaciente, setSelectedPaciente] = useState<{id: string, nombres: string, apellido_paterno: string} | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [fechaInicioHistorial, setFechaInicioHistorial] = useState<string>(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split('T')[0];
+  });
+  const [fechaFinHistorial, setFechaFinHistorial] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [chartDataHistorial, setChartDataHistorial] = useState<{
+    ingresosPorCategoria: any;
+    egresosPorCategoria: any;
+    distribucionGeneral: any;
+  } | null>(null);
+
+ // Función para obtener el ID de la categoría "COMISIÓN TARJETA" o similar
+   const obtenerIdCategoriaImpuestos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tipos_movimiento')
+        .select('id')
+        .ilike('nombre', '%Impuestos y Tributos%')
+        .eq('tipo', 'Egreso')
+        .single();
+
+      if (error) throw error;
+      
+      // Si no existe la categoría, la creamos
+      if (!data) {
+        const { data: newCategory } = await supabase
+          .from('tipos_movimiento')
+          .insert([{
+            nombre: 'Impuestos y Tributos',
+            tipo: 'Egreso',
+            activo: true
+          }])
+          .select()
+          .single();
+        
+        return newCategory?.id || null;
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error('Error al buscar categoría de impuestos:', error);
+      return null;
+    }
+  };
 
   // Función para formatear el valor según el tipo de movimiento
   const formatValor = (valor: number, tipo: 'Ingreso' | 'Egreso' | 'Ajuste') => {
@@ -1751,13 +1693,20 @@ const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
   };
 
   // Formatear fecha y hora
-  const formatDateTime = (dateString: string) => {
+const formatDateTime = (dateString: string) => {
+  try {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return { fecha: 'Fecha inválida', hora: 'Hora inválida' };
+    }
     return {
       fecha: date.toLocaleDateString('es-ES'),
       hora: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
     };
-  };
+  } catch (e) {
+    return { fecha: 'Fecha inválida', hora: 'Hora inválida' };
+  }
+};
 
   // Cargar tipos de movimiento
   useEffect(() => {
@@ -1789,71 +1738,74 @@ const [medicos, setMedicos] = useState<{id: number, nombre: string}[]>([]);
 
     cargarTiposMovimiento();
   }, [tipoMovimiento]);
-   useEffect(() => {
+
+useEffect(() => {
+  const cargarPacientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('id, nombres, apellido_paterno');
+
+      if (error) throw error;
+
+      setPacientes(data || []);
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
+      toast.error('Error al cargar lista de pacientes');
+    }
+  };
+
+  cargarPacientes();
+}, []);
+
+  // Manejar cambio de valor con conversión de moneda
+  const handleValorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValor = e.target.value;
+    setValor(inputValor);
+    
+    if (inputValor) {
+      const valorNumerico = parseFloat(inputValor);
+      if (!isNaN(valorNumerico)) {
+        if (tipoMoneda === 'USD') {
+          const valorConvertido = valorNumerico * 3.7;
+          setValorEnSoles(valorConvertido);
+        } else {
+          setValorEnSoles(valorNumerico);
+        }
+      }
+    } else {
+      setValorEnSoles(0);
+    }
+  };
+
+
+ // Función para obtener médicos con manejo de errores mejorado
+  useEffect(() => {
     const cargarMedicos = async () => {
       try {
-        const { data, error } = await supabase.from('medicos').select('id, nombre');
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('medicos')
+          .select('id, nombre')
+          .order('nombre', { ascending: true });
+
         if (error) throw error;
+
         setMedicos(data || []);
       } catch (error) {
         console.error('Error al cargar médicos:', error);
         toast.error('Error al cargar lista de médicos');
+      } finally {
+        setIsLoading(false);
       }
     };
+    
     cargarMedicos();
   }, []);
 
-  // Cargar registros y calcular balances
-  const cargarRegistros = async (fechaSeleccionada: string) => {
-    setIsLoading(true);
-    try {
-      const { data: registrosData, error: registrosError } = await supabase
-        .from('registros_caja')
-        .select(`
-          id,
-          fecha,
-          tipo_movimiento_id,
-          descripcion,
-          valor,
-          numero_factura,
-          user_id,
-          created_at,
-          tipos_movimiento (id, nombre, tipo),
-          users:user_id(nombre),
-          medico:medico_id(*),
-        forma_pago
-        `)
-        .eq('user_id', userId)
-        .eq('fecha', fechaSeleccionada)
-        .order('created_at', { ascending: true });
-
-      if (registrosError) throw registrosError;
-
-      const registrosCompletos = registrosData?.map(registro => ({
-        ...registro,
-        tipo_movimiento: registro.tipos_movimiento,
-        usuario: registro.users
-      })) || [];
-
-      setRegistros(registrosCompletos);
-      setChartData(prepararDatosGrafico(registrosCompletos));
-
-      const totalDia = registrosCompletos.reduce((sum, registro) => {
-        return registro.tipo_movimiento?.tipo === 'Ingreso' ? sum + registro.valor : sum - Math.abs(registro.valor);
-      }, 0);
-      setTotalDia(totalDia);
-
-    } catch (error) {
-      console.error('Error cargando registros:', error);
-      toast.error('Error al cargar registros de caja');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Preparar datos para el gráfico
+    // Preparar datos para el gráfico
 const prepararDatosGrafico = (registros: RegistroCaja[]) => {
-  // 1. Gráfico de Ingresos por categoría (incluye ajustes positivos)
+  // Filtrar y sumar ingresos (incluye ajustes positivos)
   const ingresos = registros.filter(r => 
     r.tipo_movimiento?.tipo === 'Ingreso' || 
     (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor >= 0)
@@ -1865,7 +1817,7 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     return acc;
   }, {} as Record<string, number>);
 
-  // 2. Gráfico de Egresos por categoría (incluye ajustes negativos)
+  // Filtrar y sumar egresos (incluye ajustes negativos)
   const egresos = registros.filter(r => 
     r.tipo_movimiento?.tipo === 'Egreso' || 
     (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor < 0)
@@ -1877,7 +1829,7 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     return acc;
   }, {} as Record<string, number>);
 
-  // 3. Gráfico de distribución general (Ingresos vs Egresos)
+  // Calcular totales
   const totalIngresos = Object.values(categoriasIngresos).reduce((a, b) => a + b, 0);
   const totalEgresos = Object.values(categoriasEgresos).reduce((a, b) => a + b, 0);
 
@@ -1908,75 +1860,231 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
       labels: ['Ingresos', 'Egresos'],
       datasets: [{
         data: [totalIngresos, totalEgresos],
-        backgroundColor: [colorPrimary, colorAccent],
-        borderColor: [colorPrimaryDark, '#E68A00'],
+        backgroundColor: ['#81C784', '#E57373'],
+        borderColor: ['#388E3C', '#D32F2F'],
         borderWidth: 1
       }]
     }
   };
 };
-  
+
+  // Cargar registros y calcular balances
+const cargarRegistros = async (fechaSeleccionada: string) => {
+  setIsLoading(true);
+
+  try {
+    // 1. Primero verifica que userId y fechaSeleccionada tengan valor
+    if (!userId || !fechaSeleccionada) {
+      throw new Error('Falta userId o fecha');
+    }
+
+    // 2. Consulta mejorada con todas las relaciones necesarias
+    const { data, error } = await supabase
+      .from('registros_caja')
+      .select(`
+        id,
+        fecha,
+        tipo_movimiento_id,
+        descripcion,
+        valor,
+        numero_factura,
+        user_id,
+        created_at,
+        medico_id,
+        forma_pago,
+        paciente_id,
+        tipos_movimiento (id, nombre, tipo),
+        users:user_id(nombre),
+        medico:medico_id(id, nombre),
+        paciente:paciente_id(id, nombres, apellido_paterno)
+      `)
+      .eq('user_id', userId)
+      .eq('fecha', fechaSeleccionada)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error de Supabase:', error);
+      throw error;
+    }
+
+    console.log('Datos recibidos con relaciones:', data); // Para depuración
+
+    // 3. Procesar los datos para incluir las relaciones
+    const registros = (data || []).map((registro) => ({
+      ...registro,
+      tipo_movimiento: registro.tipos_movimiento,
+      usuario: registro.users,
+      medico: registro.medico,
+      paciente: registro.paciente ? {
+        id: registro.paciente.id,
+        nombreCompleto: `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}`
+      } : null
+    }));
+
+    // 4. Actualizar los estados
+    setRegistros(registros);
+    
+    if (registros.length > 0) {
+      setChartData(prepararDatosGrafico(registros));
+      setTotalDia(registros.reduce((total, reg) => total + reg.valor, 0));
+    } else {
+      setChartData(null);
+      setTotalDia(0);
+    }
+
+  } catch (error) {
+    console.error('Error completo al cargar registros:', error);
+    toast.error(`Error al cargar registros: ${error.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // Cargar historial
-  const cargarHistorial = async () => {
-    try {
-      setIsLoading(true);
-      const { data: registrosData, error: registrosError } = await supabase
-        .from('registros_caja')
-        .select(`
-          id,
-          fecha,
-          tipo_movimiento_id,
-          descripcion,
-          valor,
-          numero_factura,
-          created_at,
-          medico_id,
-          forma_pago,
-          tipos_movimiento (id, nombre, tipo),
-          users:user_id(nombre),
-         medico:medico_id(*),
-        forma_pago
-        `)
-        .eq('user_id', userId)
-        .order('fecha', { ascending: false });
-      if (registrosError) throw registrosError;
+const cargarHistorial = async () => {
+  try {
+    setIsLoading(true);
+    
+    // Consulta con todas las relaciones necesarias
+    const { data: registrosData, error: registrosError } = await supabase
+      .from('registros_caja')
+      .select(`
+        id,
+        fecha,
+        tipo_movimiento_id,
+        descripcion,
+        valor,
+        numero_factura,
+        created_at,
+        medico_id,
+        forma_pago,
+        moneda,
+        paciente_id,
+        tipos_movimiento (id, nombre, tipo),
+        users:user_id(nombre),
+        medico:medico_id(id, nombre),
+        paciente:paciente_id(id, nombres, apellido_paterno)
+      `)
+      .eq('user_id', userId)
+      .gte('fecha', fechaInicioHistorial)
+      .lte('fecha', fechaFinHistorial)
+      .order('fecha', { ascending: false });
 
-      const historialPorAno: Record<number, Record<number, RegistroCaja[]>> = {};
-      registrosData.forEach(registro => {
-        const fecha = new Date(registro.fecha);
-        const ano = fecha.getFullYear();
-        const mes = fecha.getMonth() + 1;
-        if (!historialPorAno[ano]) historialPorAno[ano] = {};
-        if (!historialPorAno[ano][mes]) historialPorAno[ano][mes] = [];
-        historialPorAno[ano][mes].push({
-          ...registro,
-          tipo_movimiento: registro.tipos_movimiento,
-          usuario: registro.users
-        });
-      });
+    if (registrosError) throw registrosError;
 
-      const historialFormateado = Object.entries(historialPorAno).map(([anoStr, meses]) => ({
-        ano: parseInt(anoStr),
-        meses: Object.entries(meses).map(([mesStr, registros]) => ({
-          mes: parseInt(mesStr),
-          registros
-        }))
-      }));
+    // Procesar los registros
+    const registrosProcesados = (registrosData || []).map(registro => ({
+      ...registro,
+      tipo_movimiento: registro.tipos_movimiento,
+      usuario: registro.users,
+      medico: registro.medico,
+      paciente: registro.paciente ? {
+        id: registro.paciente.id,
+        nombreCompleto: `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}`
+      } : null,
+      moneda: registro.moneda || 'SOLES'
+    }));
 
-      setHistorialFiltrado(historialFormateado);
-      const balance = registrosData.reduce((sum, reg) => {
-        const tipo = reg.tipo_movimiento?.tipo;
-        return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
-      }, 0);
-      setBalanceMes(balance);
-    } catch (error) {
-      console.error('Error cargando historial:', error);
-      toast.error('Error al cargar historial');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Organizar por año y mes
+    const historialPorAno: Record<number, Record<number, any[]>> = {};
+    registrosProcesados.forEach(registro => {
+      const fecha = new Date(registro.fecha);
+      const ano = fecha.getFullYear();
+      const mes = fecha.getMonth() + 1;
+      
+      if (!historialPorAno[ano]) historialPorAno[ano] = {};
+      if (!historialPorAno[ano][mes]) historialPorAno[ano][mes] = [];
+      
+      historialPorAno[ano][mes].push(registro);
+    });
+
+    // Formatear para el estado
+    const historialFormateado = Object.entries(historialPorAno).map(([anoStr, meses]) => ({
+      ano: parseInt(anoStr),
+      meses: Object.entries(meses).map(([mesStr, registros]) => ({
+        mes: parseInt(mesStr),
+        registros
+      }))
+    }));
+
+    // Calcular balance total
+    const balance = registrosProcesados.reduce((sum, reg) => {
+      const tipo = reg.tipo_movimiento?.tipo;
+      return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
+    }, 0);
+
+    // Preparar datos para los gráficos
+    const chartData = prepararDatosGrafico(registrosProcesados);
+
+    // Actualizar estados
+    setHistorialFiltrado(historialFormateado);
+    setBalanceMes(balance);
+    setChartDataHistorial(chartData);
+
+  } catch (error) {
+    console.error('Error cargando historial:', error);
+    toast.error(`Error al cargar historial: ${error.message}`);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// Componente de filtros para el historial (debes agregarlo en tu JSX)
+const FiltrosHistorial = () => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+    <div>
+      <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
+      <input
+        type="date"
+        value={fechaInicioHistorial}
+        onChange={(e) => setFechaInicioHistorial(e.target.value)}
+        className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+      />
+    </div>
+    <div>
+      <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
+      <input
+        type="date"
+        value={fechaFinHistorial}
+        onChange={(e) => setFechaFinHistorial(e.target.value)}
+        className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+      />
+    </div>
+    <div className="flex items-end">
+      <button
+        onClick={cargarHistorial}
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+      >
+        Aplicar Filtros
+      </button>
+    </div>
+  </div>
+);
+
+// En tu JSX, muestra los gráficos del historial así:
+{chartDataHistorial && (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center">Ingresos Históricos</h3>
+      <div className="h-64">
+        <Pie data={chartDataHistorial.ingresosPorCategoria} />
+      </div>
+    </div>
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center">Egresos Históricos</h3>
+      <div className="h-64">
+        <Pie data={chartDataHistorial.egresosPorCategoria} />
+      </div>
+    </div>
+    <div className="bg-white p-4 rounded-lg shadow">
+      <h3 className="text-sm font-semibold mb-2 text-center">Balance Histórico</h3>
+      <div className="h-64">
+        <Pie data={chartDataHistorial.distribucionGeneral} />
+      </div>
+    </div>
+  </div>
+)}
 
   useEffect(() => {
     if (userId && fecha) {
@@ -1996,66 +2104,111 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
   }, [userId, fecha, historialVisible]);
 
   // Agregar nuevo registro
- const agregarRegistro = async () => {
-  if (!descripcion || !valor) {
-    toast.error('Descripción y valor son requeridos');
-    return;
-  }
-  if (!tipoMovimientoId) {
-    toast.error('Debe seleccionar una categoría');
+const agregarRegistro = async () => {
+    if (!descripcion || !valor) {
+      toast.error('Descripción y valor son requeridos');
+      return;
+    }
+    if (!tipoMovimientoId) {
+      toast.error('Debe seleccionar una categoría');
+      return;
+    }
+
+    let valorNumerico = valorEnSoles;
+    if (isNaN(valorNumerico)) {
+      toast.error('El valor debe ser un número');
+      return;
+    }
+
+    // Validación de fecha - asegurarnos que es una fecha válida
+     const fechaParaSupabase = new Date(fecha);
+  
+  // Asegurarnos que la fecha es válida
+  if (isNaN(fechaParaSupabase.getTime())) {
+    toast.error('Fecha no válida');
     return;
   }
 
-  // Conversión y validación del valor
-  let valorNumerico = parseFloat(valor);
-  if (isNaN(valorNumerico)) {
-    toast.error('El valor debe ser un número');
-    return;
-  }
+  // Formatear a ISO sin tiempo (YYYY-MM-DD)
+  const fechaISO = fechaParaSupabase.toISOString().split('T')[0];
+    const tipoMovimientoSeleccionado = tiposMovimiento.find(t => t.id === tipoMovimientoId)?.tipo;
+    if (tipoMovimientoSeleccionado === 'Ingreso' && valorNumerico < 0) {
+      toast.error('Los ingresos deben ser valores positivos');
+      return;
+    }
+    if (tipoMovimientoSeleccionado === 'Egreso') {
+      valorNumerico = -Math.abs(valorNumerico);
+    }
 
-  // Lógica de ingreso/egreso
-  const tipoMovimientoSeleccionado = tiposMovimiento.find(t => t.id === tipoMovimientoId)?.tipo;
-  if (tipoMovimientoSeleccionado === 'Ingreso' && valorNumerico < 0) {
-    toast.error('Los ingresos deben ser valores positivos');
-    return;
-  }
-  if (tipoMovimientoSeleccionado === 'Egreso') {
-    valorNumerico = -Math.abs(valorNumerico);
-  }
+    setIsLoading(true);
+    try {
+      // Insertar registro principal - usando fechaiso
+      const { data: registroInsertado, error: errorRegistro } = await supabase
+        .from('registros_caja')
+        .insert([{
+          fecha: fechaISO,// Aquí usamos la fecha formateada
+          tipo_movimiento_id: tipoMovimientoId,
+          descripcion,
+          valor: valorNumerico,
+          numero_factura: numeroFactura || null,
+          user_id: userId,
+          medico_id: medicoId,
+          forma_pago: formaPago,
+          paciente_id: pacienteId
+        }])
+        .select()
+        .single();
 
-  // Insertar registro
-  setIsLoading(true);
-  try {
-    const { error } = await supabase
-      .from('registros_caja')
-      .insert([{
-        fecha,
-        tipo_movimiento_id: tipoMovimientoId,
-        descripcion,
-        valor: valorNumerico,
-        numero_factura: numeroFactura || null,
-        user_id: userId,
-        medico_id: medicoId,  // ← Nombre correcto de la columna
-        forma_pago: formaPago
-      }]);
+      if (errorRegistro) throw errorRegistro;
 
-    if (error) throw error;
-    
-    toast.success('Registro agregado correctamente');
-    // Resetear formulario
-    setDescripcion('');
-    setValor('');
-    setNumeroFactura('');
-    setMedicoId(null);  // Limpiar selección de médico
-    // Recargar registros
-    cargarRegistros(fecha);
-  } catch (error: any) {
-    console.error('Error agregando registro:', error);
-    toast.error(`Error al agregar registro: ${error.message}`);
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Si es un ingreso con tarjeta, agregar el egreso del 5%
+      if (tipoMovimientoSeleccionado === 'Ingreso' && formaPago === 'TARJETA') {
+        const comisionTarjeta = Math.abs(valorNumerico) * 0.05;
+        const idCategoriaImpuestos = await obtenerIdCategoriaImpuestos();
+
+        if (!idCategoriaImpuestos) {
+          toast('No se pudo crear/obtener la categoría de impuestos', { 
+            type: 'error',
+            autoClose: 5000
+          });
+        } else {
+          await supabase
+            .from('registros_caja')
+            .insert([{
+              fecha: fechaISO, // Misma fecha formateada
+              tipo_movimiento_id: idCategoriaImpuestos,
+              descripcion: `Encargos por tarjeta (${descripcion})`,
+              valor: -comisionTarjeta,
+              user_id: userId,
+              medico_id: medicoId,
+              forma_pago: 'TARJETA',
+              paciente_id: pacienteId,
+              relacionado_con: registroInsertado.id
+            }]);
+        }
+      }
+
+      toast.success('Registro agregado correctamente');
+      // Resetear formulario
+      setDescripcion('');
+      setValor('');
+      setValorEnSoles(0);
+      setNumeroFactura('');
+      setMedicoId(null);
+      setPacienteId(null);
+      setSelectedPaciente(null);
+      setBusquedaPaciente('');
+      setTipoMoneda('SOLES');
+      // Recargar registros con la fecha usada
+      cargarRegistros(fechaISO);
+    } catch (error: any) {
+      console.error('Error agregando registro:', error);
+      toast.error(`Error al agregar registro: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Eliminar registro
   const eliminarRegistro = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
@@ -2113,7 +2266,13 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
   };
 
 
-
+// Filtrar pacientes basado en la búsqueda
+const filteredPacientes = query.trim() === ''
+  ? pacientes
+  : pacientes.filter((paciente) => {
+      const fullName = `${paciente.nombres} ${paciente.apellido_paterno}`.toLowerCase();
+      return fullName.includes(query.toLowerCase());
+    });
   
 
   return (
@@ -2168,9 +2327,12 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
           </button>
         </div>
 
-        {/* Formulario */}
-        <div className="p-3 sm:p-4 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 items-end">
+        {/* Formulario de registro*/}
+
+
+ <div className="p-3 sm:p-4 rounded-lg" style={{ backgroundColor: colorSecondary }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-2 sm:gap-3 items-end">
+
 
     {/* Tipo */}
     <div className="md:col-span-1">
@@ -2194,7 +2356,7 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
   </label>
   <select
     value={tipoMovimientoId || ''}
-    onChange={(e) => setTipoMovimientoId(Number(e.target.value))}
+    onChange={(e) => setTipoMovimientoId(Number(e.target.value|| null))}
     className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
     disabled={tiposMovimiento.length === 0 || isLoading}
   >
@@ -2219,10 +2381,10 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     Médico
   </label>
   <select
-    value={medicoId || ''}
-    onChange={(e) => setMedicoId(e.target.value || null)}
-    className="block w-full  min-w-[450px] rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-    disabled={medicos.length === 0 || isLoading}
+  value={medicoId || ''}
+  onChange={(e) => setMedicoId(e.target.value ? Number(e.target.value) : null)}
+  className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+  disabled={medicos.length === 0 || isLoading}
   >
     {isLoading ? (
       <option value="">Cargando médicos...</option>
@@ -2239,6 +2401,74 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
       </>
     )}
   </select>
+</div>
+
+{/* Paciente con búsqueda */}
+<div className="md:col-span-2">
+  <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
+    Paciente
+  </label>
+  <div className="relative">
+    <input
+      type="text"
+      value={busquedaPaciente}
+      onChange={(e) => {
+        setBusquedaPaciente(e.target.value);
+        setShowDropdown(true);
+      }}
+      onFocus={() => setShowDropdown(true)}
+      onBlur={() => setTimeout(() => setShowDropdown(false), 200)} // Cierra el dropdown con un pequeño retraso
+      placeholder="Buscar por nombre o apellido..."
+      className="block w-full rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 text-sm"
+    />
+    
+    {busquedaPaciente && (
+      <div className="absolute right-2 top-2">
+        <button 
+          onClick={() => {
+            setBusquedaPaciente('');
+            setPacienteId(null);
+          }}
+          className="text-gray-500 hover:text-gray-700"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    )}
+    
+    {showDropdown && (
+      <div className="absolute z-10 mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-300 max-h-60 overflow-y-auto">
+        {pacientes
+          .filter(p => 
+            `${p.nombres} ${p.apellido_paterno}`
+              .toLowerCase()
+              .includes(busquedaPaciente.toLowerCase())
+          )
+          .map((paciente) => (
+            <div
+              key={paciente.id}
+              className={`p-2 hover:bg-blue-50 cursor-pointer ${pacienteId === paciente.id ? 'bg-blue-100' : ''}`}
+              onClick={() => {
+                setPacienteId(paciente.id);
+                setBusquedaPaciente(`${paciente.nombres} ${paciente.apellido_paterno}`);
+                setShowDropdown(false);
+              }}
+            >
+              {paciente.nombres} {paciente.apellido_paterno}
+            </div>
+          ))}
+        {pacientes.filter(p => 
+          `${p.nombres} ${p.apellido_paterno}`
+            .toLowerCase()
+            .includes(busquedaPaciente.toLowerCase())
+        ).length === 0 && (
+          <div className="p-2 text-gray-500">No se encontraron pacientes</div>
+        )}
+      </div>
+    )}
+  </div>
 </div>
 
     {/* Forma de Pago */}
@@ -2260,6 +2490,20 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
       </select>
     </div>
 
+     {/* Moneda */}
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Moneda</label>
+              <select
+                value={tipoMoneda}
+                onChange={(e) => setTipoMoneda(e.target.value as 'SOLES' | 'USD')}
+                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+              >
+                <option value="SOLES">Soles</option>
+                <option value="USD">Dólares</option>
+              </select>
+            </div>
+
+
     {/* Descripción */}
     <div className="md:col-span-3">
       <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Descripción</label>
@@ -2273,20 +2517,28 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
       />
     </div>
 
-    {/* Valor */}
-    <div className="md:col-span-2">
-      <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Valor</label>
-      <input
-        type="number"
-        step="0.01"
-        value={valor}
-        onChange={(e) => setValor(e.target.value)}
-        placeholder="0.00"
-        className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
-        style={{ borderColor: colorPrimaryLight }}
-      />
-    </div>
-
+            {/* Valor */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>
+                Valor ({tipoMoneda === 'USD' ? 'USD' : 'S/'})
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={valor}
+                onChange={handleValorChange}
+                placeholder="0.00"
+                className="block w-full rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border text-sm"
+                style={{ borderColor: colorPrimaryLight }}
+              />
+              {tipoMoneda === 'USD' && valor && !isNaN(parseFloat(valor)) && (
+                <p className="text-xs text-gray-500 mt-1">
+                  ≈ {formatMoneda(valorEnSoles)}
+                </p>
+              )}
+            </div>
+    
+  
     {/* Nº Factura */}
     <div className="md:col-span-1">
       <label className="block text-sm font-medium mb-1" style={{ color: colorPrimaryDark }}>Nº Factura</label>
@@ -2323,17 +2575,17 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
       ) : 'Agregar Registro'}
     </button>
   </div>
-</div>
+        </div>
 
 
 
         {/* Registros del día */}
-       {/* Registros del día */}
 <div>
-  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-    <h3 className="font-medium" style={{ color: colorPrimaryDark }}>Movimientos del día</h3>
-    <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
-      <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
+  {/* Encabezado de sección */}
+  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+    <h3 className="text-lg font-semibold text-primary-dark">Movimientos del día</h3>
+    <div className="px-3 py-1 rounded-lg bg-secondary">
+      <p className="text-sm font-medium text-primary-dark">
         Balance del día: 
         <span className={`ml-2 text-lg ${totalDia >= 0 ? 'text-green-600' : 'text-red-600'}`}>
           {formatMoneda(totalDia)}
@@ -2342,79 +2594,73 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     </div>
   </div>
 
+  {/* Contenido */}
   {isLoading && registros.length === 0 ? (
-    <div className="flex justify-center py-8">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+    <div className="flex justify-center items-center py-8">
+      <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-400 border-t-transparent"></div>
     </div>
   ) : registros.length === 0 ? (
-    <p className="text-sm text-gray-500 text-center py-4">No hay registros para esta fecha</p>
+    <p className="text-sm text-center text-gray-500 py-6">No hay registros para esta fecha.</p>
   ) : (
-    <div className="overflow-x-auto border rounded-lg">
+    <div className="overflow-x-auto border rounded-lg shadow-sm">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Médico</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo Pago</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Usuario</th>
-            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Acciones</th>
+            {[
+              'Fecha',  'Tipo', 'Categoría',
+              'Médico','Paciente' ,'Tipo Pago', 'Valor',
+              'Factura', 'Usuario', 'Acciones'
+            ].map((col) => (
+              <th
+                key={col}
+                className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-primary-dark whitespace-nowrap"
+              >
+                {col}
+              </th>
+            ))}
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="bg-white divide-y divide-gray-100">
           {registros.map((registro) => {
-            const tipo = registro.tipo_movimiento?.tipo;
-            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-            const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
-            
+            const tipo = registro.tipo_movimiento?.tipo || 'DESC';
+            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo);
+            const { fecha: fechaISO } = formatDateTime(registro.fecha);
+
             return (
               <tr key={registro.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                  {fechaFormateada}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                  {hora}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                    tipo === 'Ingreso' 
-                      ? 'bg-green-100 text-green-800' 
-                      : tipo === 'Egreso' 
+                <td className="px-3 py-2 text-sm text-gray-700">{fechaISO}</td>
+                
+                <td className="px-3 py-2">
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium
+                    ${tipo === 'Ingreso'
+                      ? 'bg-green-100 text-green-800'
+                      : tipo === 'Egreso'
                         ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {tipo || 'DESC'}
+                        : 'bg-yellow-100 text-yellow-800'}
+                  `}>
+                    {tipo}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-sm text-gray-900">
                   {registro.tipo_movimiento?.nombre || 'Desconocido'}
                   {registro.descripcion && (
-                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                    <p className="text-xs text-gray-500 truncate max-w-xs" title={registro.descripcion}>
+                      {registro.descripcion}
+                    </p>
                   )}
                 </td>
-                <td className="px-3 py-2 text-sm text-gray-900">
-                  {registro.medico?.nombre || '-'}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                  {registro.forma_pago || '-'}
-                </td>
-                <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
+                <td className="px-3 py-2 text-sm text-gray-900">{registro.medico?.nombre || '-'}</td>
+                <td className="px-3 py-2 text-sm text-gray-900">  {registro.paciente?.nombreCompleto || '-'}</td>
+                <td className="px-3 py-2 text-sm text-gray-900">{registro.forma_pago || '-'}</td>
+                <td className={`px-3 py-2 text-sm font-semibold ${valorColor}`}>
                   {valorDisplay}
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                  {registro.numero_factura || '-'}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700">
-                  {registro.usuario?.nombre || 'Desconocido'}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-sm font-medium">
+                <td className="px-3 py-2 text-sm text-gray-600">{registro.numero_factura || '-'}</td>
+                <td className="px-3 py-2 text-sm text-gray-700">{registro.usuario?.nombre || 'Desconocido'}</td>
+                <td className="px-3 py-2 text-sm">
                   <button
                     onClick={() => eliminarRegistro(registro.id)}
-                    className="text-red-600 hover:text-red-900 flex items-center"
+                    className="text-red-600 hover:text-red-800 flex items-center"
                     title="Eliminar registro"
                   >
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2431,6 +2677,7 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     </div>
   )}
 </div>
+
 
         {/* Gráfico de distribución */}
 {chartData && (
@@ -2547,22 +2794,79 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
 )}
 
         {/* Historial */}
-        {historialVisible && (
+      
+{historialVisible && (
   <div className="mt-6 sm:mt-8">
+    {/* Filtros de fecha */}
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+      <div>
+        <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
+        <input
+          type="date"
+          value={fechaInicioHistorial}
+          onChange={(e) => setFechaInicioHistorial(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
+        <input
+          type="date"
+          value={fechaFinHistorial}
+          onChange={(e) => setFechaFinHistorial(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        />
+      </div>
+      <div className="flex items-end">
+        <button
+          onClick={cargarHistorial}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Aplicar Filtros
+        </button>
+      </div>
+    </div>
+
+    {/* Encabezado del historial */}
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
       <h3 className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>Historial de Movimientos</h3>
       <div className="px-3 py-1 rounded-lg" style={{ backgroundColor: colorSecondary }}>
         <p className="text-sm font-medium" style={{ color: colorPrimaryDark }}>
-          Balance del mes: 
+          Balance del período: 
           <span className={`ml-2 text-lg ${balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {formatMoneda(balanceMes)}
           </span>
         </p>
       </div>
     </div>
-    
+
+    {/* Gráficos del historial */}
+    {chartDataHistorial && (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-semibold mb-2 text-center">Ingresos por Categoría</h3>
+          <div className="h-64">
+            <Pie data={chartDataHistorial.ingresosPorCategoria} />
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-semibold mb-2 text-center">Egresos por Categoría</h3>
+          <div className="h-64">
+            <Pie data={chartDataHistorial.egresosPorCategoria} />
+          </div>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
+          <div className="h-64">
+            <Pie data={chartDataHistorial.distribucionGeneral} />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Tabla de historial */}
     {historialFiltrado.length === 0 ? (
-      <p className="text-sm text-gray-500">No hay registros históricos</p>
+      <p className="text-sm text-gray-500">No hay registros históricos para el período seleccionado</p>
     ) : (
       <div className="space-y-6 sm:space-y-8">
         {historialFiltrado.map((anoData) => (
@@ -2599,11 +2903,13 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Fecha</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Hora</th>
+                          
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Tipo</th>
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Categoría</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Paciente</th>
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Médico</th>
-                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Pago</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Forma Pago</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Moneda</th>
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Valor</th>
                             <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colorPrimaryDark }}>Factura</th>
                           </tr>
@@ -2612,16 +2918,14 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
                           {mesData.registros.map((registro) => {
                             const tipo = registro.tipo_movimiento?.tipo;
                             const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                            const { fecha: fechaFormateada, hora } = formatDateTime(registro.created_at);
+                            const { fecha: fechaISO } = formatDateTime(registro.fecha);
                             
                             return (
                               <tr key={registro.id} className="hover:bg-gray-50">
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                  {fechaFormateada}
+                                  {fechaISO}
                                 </td>
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                  {hora}
-                                </td>
+                                
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                                     tipo === 'Ingreso' 
@@ -2640,10 +2944,16 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
                                   )}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
+                                  {registro.paciente?.nombreCompleto || '-'}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.medico?.nombre || '-'}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.forma_pago || '-'}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                  {registro.moneda}
                                 </td>
                                 <td className={`px-3 py-2 whitespace-nowrap text-sm font-medium ${valorColor}`}>
                                   {valorDisplay}
@@ -2667,128 +2977,8 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
     )}
   </div>
 )}
+
       </div>
-    </div>
-  );
-}
-
-
-function MisBoletas({ userId }: MisBoletasProps) {
-
-  const [boletas, setBoletas] = useState<Boleta[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const cargarBoletas = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('boletas_usuarios')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        setBoletas(data || []);
-      } catch (error) {
-        console.error('Error cargando boletas:', error);
-        toast.error('Error al cargar tus boletas');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (userId) cargarBoletas();
-  }, [userId]);
-
-  const handleDownload = (url:string) => {
-    window.open(url, '_blank');
-  };
-
-  return (
-    <div className="rounded-xl p-6" style={{ 
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      border: `1px solid ${colors.primary[100]}`,
-      boxShadow: `0 4px 6px ${colors.primary[50]}`
-    }}>
-      <h2 className="text-xl font-semibold mb-6" style={{ color: colors.primary[700] }}>
-        Historias Clínicas
-      </h2>
-      
-      <div className="mb-8 p-4 rounded-lg text-center" style={{ 
-        backgroundColor: colors.primary[50],
-        border: `1px solid ${colors.primary[200]}`
-      }}>
-        <h4 className="text-lg font-semibold" style={{ color: colors.primary[600] }}>        
-          ¡Muy pronto podrás acceder a las historias clínicas de tus pacientes! 🚀
-        </h4>
-      </div>
-  
-      {isLoading ? (
-        <div className="flex justify-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6" style={{
-            borderTopColor: colors.primary[500],
-            borderRightColor: colors.primary[200],
-            borderBottomColor: colors.primary[200],
-            borderLeftColor: colors.primary[200]
-          }}></div>
-        </div>
-      ) : boletas.length === 0 ? (
-        <p className="text-sm text-center py-4" style={{ color: colors.neutral[500] }}>
-          No hay historias clínicas registradas.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg" style={{ borderColor: colors.primary[100] }}>
-          <table className="min-w-full divide-y" style={{ divideColor: colors.primary[100] }}>
-            <thead style={{ backgroundColor: colors.primary[50] }}>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>
-                  Año
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>
-                  Mes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>
-                  Fecha de Subida
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: colors.primary[600] }}>
-                  Acción
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y" style={{ 
-              backgroundColor: 'white',
-              divideColor: colors.primary[100]
-            }}>
-              {boletas.map((boleta) => (
-                <tr key={boleta.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: colors.primary[800] }}>
-                    {boleta.ano}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: colors.primary[800] }}>
-                    {new Date(2000, boleta.mes - 1, 1).toLocaleString('es-ES', { month: 'long' })}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: colors.neutral[600] }}>
-                    {new Date(boleta.created_at).toLocaleString('es-ES')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleDownload(boleta.arquivo_url)}
-                      className="flex items-center transition-colors"
-                      style={{
-                        color: colors.primary[600],
-                        hoverColor: colors.primary[700]
-                      }}
-                    >
-                      <Download className="w-4 h-4 mr-1" />
-                      Descargar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
@@ -2798,24 +2988,18 @@ function PaginaPrincipal() {
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userLastName, setUserLastName] = useState('');
-  const [lugarTrabajo, setLugarTrabajo] = useState('');
-  const [lugarPersonalizado, setLugarPersonalizado] = useState('');
-  const [registroTiempo, setRegistroTiempo] = useState<TimeEntry | null>(null);
-  const [estaTrabajando, setEstaTrabajando] = useState<boolean>(false);
+
+ 
   const [estaProcesando, setEstaProcesando] = useState<boolean>(false);
-  const [tiempoTranscurrido, setTiempoTranscurrido] = useState<number>(0);
+
   const [ubicacionActual, setUbicacionActual] = useState<Ubicacion | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [ultimoRegistro, setUltimoRegistro] = useState(null);
-  const [todosRegistros, setTodosRegistros] = useState([]);
-  const [lugaresTrabajo, setLugaresTrabajo] = useState<Workspace[]>([]);
-  const [eventosCalendario, setEventosCalendario] = useState([]);
-  const [diasLibres, setDiasLibres] = useState<DiaLibre[]>([]);
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [activeTab, setActiveTab] = useState('registro');
   const [userActiveTab, setUserActiveTab] = useState('caja');
   const [userData, setUserData] = useState(null);
-  const [gpsDisabled, setGpsDisabled] = useState(false);
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -2824,16 +3008,7 @@ function PaginaPrincipal() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (estaTrabajando && registroTiempo) {
-      interval = setInterval(() => {
-        setTiempoTranscurrido(new Date().getTime() - new Date(registroTiempo.start_time).getTime());
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [estaTrabajando, registroTiempo]);
-
+ 
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -2847,46 +3022,9 @@ function PaginaPrincipal() {
     }
   }, []);
 
-  const getLocationPromise = () => {
-    return new Promise<GeolocationCoordinates | null>((resolve) => {
-      // Si ya tenemos coordenadas, devolvemos esas inmediatamente
-      if (ubicacionActual) {
-        console.log("Usando ubicación ya almacenada:", ubicacionActual);
-        resolve(ubicacionActual);
-        return;
-      }
   
-      if (!navigator.geolocation) {
-        console.error("Geolocalización no soportada por el navegador");
-        resolve(null);
-        return;
-      }
   
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("Ubicación obtenida:", position.coords);
-          // Actualizar estado global
-          setUbicacionActual(position.coords);
-          setGpsDisabled(false);
-          resolve(position.coords);
-        },
-        (error) => {
-          console.error("Error obteniendo ubicación:", error.code, error.message);
-          // No actualizar gpsDisabled aquí, solo para solicitudes explícitas
-          resolve(null);
-        },
-        { 
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    });
-  };
-  
-  useEffect(() => {
-
-    
+  useEffect(() => {    
     
     const getSession = async () => {
       try {
@@ -2919,9 +3057,7 @@ function PaginaPrincipal() {
         setUserName(userData.nombre || '');
         setUserLastName(userData.apellido || '');
         setUserData(userData); 
-        buscarUltimoRegistro(session.user.id);
-        buscarTodosRegistros(session.user.id);
-        buscarLugaresTrabajo();
+        
        
       } catch (error) {
         console.error('Error obteniendo sesión:', error);
@@ -2931,421 +3067,9 @@ function PaginaPrincipal() {
     getSession();
   }, []);
 
-  // Función mejorada para verificar y activar GPS
-    const handleActivarGPS = () => {
-      // Verificar si el navegador está en modo incógnito (puede causar problemas de permiso)
-      const isIncognito = !window.indexedDB;
-      
-      if (isIncognito) {
-        toast.error('El modo incógnito puede bloquear los permisos de ubicación. Por favor, usa una ventana normal.');
-        return;
-      }
-      
-      // Detectar si es dispositivo móvil
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      if (isMobile) {
-        // Para dispositivos móviles
-        toast(
-          <div>
-            <p className="font-bold">Pasos para activar el GPS:</p>
-            <ol className="list-decimal pl-5 mt-2 text-sm">
-              <li>Cierra la app y ve a Configuración</li>
-              <li>Busca "Aplicaciones" y luego esta aplicación</li>
-              <li>Ve a "Permisos" y activa "Ubicación"</li>
-              <li>Regresa a la app y refresca la página</li>
-            </ol>
-          </div>,
-          { duration: 15000 }
-        );
-      } else {
-        // Para navegadores de escritorio
-        toast(
-          <div>
-            <p className="font-bold">Para activar la ubicación:</p>
-            <ol className="list-decimal pl-5 mt-2 text-sm">
-              <li>Haz clic en el icono de candado en la barra de direcciones</li>
-              <li>Busca permisos de ubicación</li>
-              <li>Selecciona "Permitir"</li>
-              <li>Recarga la página</li>
-            </ol>
-          </div>,
-          { duration: 15000 }
-        );
-      }
-      
-      // Intentar obtener ubicación de forma forzada
-      if (navigator.geolocation) {
-        const options = {
-          enableHighAccuracy: true,
-          timeout: 20000,
-          maximumAge: 0
-        };
-        
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setUbicacionActual(position.coords);
-            setGpsDisabled(false);
-            toast.success('¡GPS activado correctamente!');
-          },
-          (error) => {
-            setGpsDisabled(true);
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                toast.error('Permiso denegado para acceder a tu ubicación');
-                break;
-              case error.POSITION_UNAVAILABLE:
-                toast.error('La información de ubicación no está disponible');
-                break;
-              case error.TIMEOUT:
-                toast.error('Tiempo de espera agotado para obtener ubicación');
-                break;
-              default:
-                toast.error('Error desconocido al acceder a la ubicación');
-            }
-          },
-          options
-        );
-      } else {
-        toast.error('Tu navegador no soporta geolocalización');
-      }
-    };
-
-    // Función para realizar múltiples intentos de obtener la ubicación
-    const obtenerUbicacionConIntentos = async (maxIntentos = 3) => {
-      let intentos = 0;
-      
-      while (intentos < maxIntentos) {
-        try {
-          const coords = await new Promise((resolve, reject) => {
-            const timeoutId = setTimeout(() => {
-              reject(new Error('Tiempo de espera agotado'));
-            }, 15000);
-            
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                clearTimeout(timeoutId);
-                resolve(position.coords);
-              },
-              (error) => {
-                clearTimeout(timeoutId);
-                reject(error);
-              },
-              { 
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0 
-              }
-            );
-          });
-          
-          // Si llegamos aquí, hemos obtenido las coordenadas
-          return coords;
-        } catch (error) {
-          intentos++;
-          
-          // En el último intento, mostrar un mensaje diferente
-          if (intentos === maxIntentos) {
-            console.error('No se pudo obtener la ubicación después de varios intentos:', error);
-            return null;
-          }
-          
-          // Esperamos un momento antes del siguiente intento
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          // Si no es el último intento, mostramos mensaje de reintento
-          if (intentos < maxIntentos) {
-            toast('Reintentando obtener ubicación... (' + intentos + '/' + maxIntentos + ')', { 
-              icon: '🔄',
-              duration: 1000
-            });
-          }
-        }
-      }
-      
-      return null;
-    };
-
-  
-  
-  // Modifique a verificação de geolocalização no useEffect
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUbicacionActual(position.coords);
-          setGpsDisabled(false);
-        },
-        () => {
-          setGpsDisabled(true);
-        }
-      );
-    }
-  }, []);
-
-// Añadir esto después de los otros useEffect
-useEffect(() => {
-  // Verificar el estado del GPS periódicamente
-  const checkGpsStatus = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => setGpsDisabled(false),
-        () => setGpsDisabled(true),
-        { timeout: 5000 }
-      );
-    } else {
-      setGpsDisabled(true);
-    }
-  };
-  
-  // Verificar al inicio
-  checkGpsStatus();
-  
-  // Verificar cada 30 segundos
-  const interval = setInterval(checkGpsStatus, 30000);
-  
-  return () => clearInterval(interval);
-}, []);
-
-  
-  
+ 
 
 
-  const isAdminUser = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-  
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-  
-      if (error) throw error;
-      
-      return userData?.role === 'admin';
-    } catch (error) {
-      console.error('Error verificando rol de admin:', error);
-      return false;
-    }
-  };
-
-  const buscarLugaresTrabajo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('ativo', true);
-
-      if (error) throw error;
-      setLugaresTrabajo(data);
-      if (data.length > 0) {
-        setLugarTrabajo(data[0].name);
-      }
-    } catch (error) {
-      console.error('Error buscando lugares de trabajo:', error);
-      toast.error('Error cargando lugares de trabajo');
-    }
-  };
-
-  const buscarUltimoRegistro = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('time_entries')
-        .select('*')
-        .eq('user_id', userId)
-        .is('end_time', null)
-        .order('start_time', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error) throw error;
-      if (data) {
-        setUltimoRegistro(data);
-        setRegistroTiempo(data);
-        setEstaTrabajando(true);
-        toast('¡Tienes un turno abierto!', { icon: '⚠️' });
-      }
-    } catch (error) {
-      console.error('Error buscando último registro:', error);
-    }
-  };
-
-  // En la función buscarTodosRegistros
-const buscarTodosRegistros = async (userId: string) => {
-  try {
-    const { data, error } = await supabase
-      .from('time_entries')
-      .select('id, workplace, start_time, end_time')
-      .eq('user_id', userId)
-      .order('start_time', { ascending: false })
-      .limit(100); // Limitar a 100 registros
-
-    if (error) throw error;
-    
-    if (data) {
-      setTodosRegistros(data);
-      // Procesar eventos de manera más eficiente
-      const eventos = data.map(registro => ({
-        id: registro.id,
-        title: registro.workplace,
-        start: new Date(registro.start_time),
-        end: registro.end_time ? new Date(registro.end_time) : new Date(),
-        status: registro.end_time ? 'completado' : 'en progreso',
-      }));
-      
-      setEventosCalendario(eventos);
-    }
-  } catch (error) {
-    console.error('Error buscando todos los registros:', error);
-    toast.error('Error al cargar registros históricos');
-  }
-};
-
-const iniciarTurno = async () => {
-  if (!userId) {
-    toast.error('Usuario no autenticado');
-    return;
-  }
-
-  if (estaProcesando) return;
-  setEstaProcesando(true);
-  
-  try {
-    // Usar directamente getLocationPromise en lugar de obtenerUbicacionConIntentos
-    const coords = await getLocationPromise();
-    
-    if (!coords) {
-      const confirmar = window.confirm(
-        'No se pudo obtener tu ubicación. ' +
-        '¿Deseas iniciar el turno sin registrar ubicación?\n\n' +
-        'Nota: Para registros futuros, asegúrate de permitir el acceso a la ubicación.'
-      );
-      
-      if (!confirmar) {
-        toast.error('Operación cancelada por el usuario');
-        setEstaProcesando(false);
-        return;
-      }
-    }
-
-    const lugarSeleccionado = lugarTrabajo === 'Otro' ? lugarPersonalizado : lugarTrabajo;
-
-    const nuevoRegistro = {
-      user_id: userId,
-      workplace: lugarSeleccionado,
-      start_time: new Date().toISOString(),
-      start_latitude: coords?.latitude || null,
-      start_longitude: coords?.longitude || null,
-    };
-
-    // Log para depuración
-    console.log("Enviando registro:", nuevoRegistro);
-
-    // Guardar en Supabase
-    const { data: registro, error } = await supabase
-      .from('time_entries')
-      .insert([nuevoRegistro])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    setRegistroTiempo(registro);
-    setEstaTrabajando(true);
-    toast.success('¡Turno iniciado correctamente!');
-    buscarTodosRegistros(userId);
-  } catch (error) {
-    console.error('Error iniciando turno:', error);
-    toast.error('Error al iniciar el turno: ' + (error.message || 'Error desconocido'));
-  } finally {
-    setEstaProcesando(false);
-  }
-};
-
-const finalizarTurno = async () => {
-  if (!registroTiempo?.id || estaProcesando) {
-    return;
-  }
-
-  setEstaProcesando(true);
-  
-  try {
-    // Usar getLocationPromise
-    const coords = await getLocationPromise();
-    
-    if (!coords) {
-      const confirmar = window.confirm(
-        'No se pudo obtener tu ubicación. ' +
-        '¿Deseas finalizar el turno sin registrar ubicación de salida?'
-      );
-      
-      if (!confirmar) {
-        toast.error('Finalización cancelada por el usuario');
-        setEstaProcesando(false);
-        return;
-      }
-    }
-
-    // Preparar datos para actualización
-    const endTime = new Date().toISOString();
-    const actualizaciones = {
-      end_time: endTime,
-      end_latitude: coords?.latitude || null,
-      end_longitude: coords?.longitude || null,
-    };
-
-    // Log para depuración
-    console.log("Actualizando registro:", actualizaciones);
-
-    // Actualizar en Supabase
-    const { error } = await supabase
-      .from('time_entries')
-      .update(actualizaciones)
-      .eq('id', registroTiempo.id);
-
-    if (error) throw error;
-
-    // Calcular tiempo trabajado
-    const tiempoTotal = new Date(endTime).getTime() - new Date(registroTiempo.start_time).getTime();
-    
-    // Actualizar estado local
-    setRegistroTiempo(null);
-    setEstaTrabajando(false);
-    setTiempoTranscurrido(0);
-    
-    // Mostrar feedback al usuario
-    toast.success(`¡Turno finalizado! Tiempo trabajado: ${formatDuration(tiempoTotal)}`);
-    buscarTodosRegistros(userId);
-  } catch (error) {
-    console.error('Error finalizando turno:', error);
-    toast.error('Error al finalizar el turno: ' + (error.message || 'Error desconocido'));
-  } finally {
-    setEstaProcesando(false);
-  }
-};
-
-  const estiloEvento = (evento: {
-    status: string;
-  }) => {
-    let colorFondo = '#3174ad';
-    if (evento.status === 'completado') {
-      colorFondo = '#28a745';
-    } else if (evento.status === 'en progreso') {
-      colorFondo = '#ffc107';
-    }
-    return {
-      style: {
-        backgroundColor: colorFondo,
-        borderRadius: '4px',
-        color: 'white',
-        border: 'none',
-        padding: '2px 8px',
-        fontSize: '14px',
-      },
-    };
-  };
  // ADMIN CONTENT
     const renderAdminContent = () => {
     const [isAdmin, setIsAdmin] = useState(false);
@@ -3407,7 +3131,7 @@ const finalizarTurno = async () => {
                 color: activeTab === 'registro' ? 'white' : colors.primary[600]
               }}
             >
-              <Truck className="w-4 h-4 mr-2" />
+              <Table2Icon className="w-4 h-4 mr-2" />
               General
             </button>
             
@@ -3427,7 +3151,7 @@ const finalizarTurno = async () => {
               Médicos
             </button>
 
-            {/* Novo botão para Pacientes */}
+            {/* Botão para Pacientes */}
             <button
               className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
                 activeTab === 'pacientes'
@@ -3443,13 +3167,7 @@ const finalizarTurno = async () => {
               <User className="w-4 h-4 mr-2" />
               Pacientes
             </button>
-
-
-
-
-
-
-
+            {/* Botão para Dashboard */}
 
             <button
               className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
@@ -3514,73 +3232,47 @@ const finalizarTurno = async () => {
   
  // USER CONTENT
     const renderNormalUserContent = () => {
-      return (
-        <>
-          <div className="flex border-b mb-6" style={{ borderColor: colors.primary[100] }}>
-          
-      
-            {/* Pestaña Mi Caja */}
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
-                userActiveTab === 'caja'
-                  ? `text-white bg-${colors.primary[900]}`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[50]}`
-              }`}
-              onClick={() => setUserActiveTab('caja')}
-              style={{
-                borderBottom: userActiveTab === 'caja' ? `2px solid ${colors.primary[900]}` : 'none',
-                marginBottom: '-1px'
-              }}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Mi Caja
-            </button>
+  return (
+    <div className="space-y-6">
+      {/* Pestañas de navegación */}
+      <div className="flex border-b" style={{ borderColor: colors.primary[100] }}>
+        {/* Pestaña Mi Caja */}
+        <button
+          className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
+            userActiveTab === 'caja'
+              ? `text-white bg-[${colors.primary[900]}]`
+              : `text-[${colors.primary[600]}] hover:bg-[${colors.primary[50]}]`
+          }`}
+          onClick={() => setUserActiveTab('caja')}
+          style={{
+            backgroundColor: userActiveTab === 'caja' ? colors.primary[900] : 'transparent',
+            color: userActiveTab === 'caja' ? 'white' : colors.primary[600],
+            borderBottom: userActiveTab === 'caja' ? `2px solid ${colors.primary[900]}` : 'none',
+            marginBottom: '-1px'
+          }}
+          aria-current={userActiveTab === 'caja' ? 'page' : undefined}
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Mi Caja
+        </button>
+      </div>
 
-            {/* Pestaña Historias Clínicas */}
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
-                userActiveTab === 'boletas'
-                  ? `text-white bg-${colors.primary[900]}`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[900]}`
-              }`}
-              onClick={() => setUserActiveTab('boletas')}
-              style={{
-                borderBottom: userActiveTab === 'boletas' ? `2px solid ${colors.primary[900]}` : 'none',
-                marginBottom: '-1px'
-              }}
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Historias Clínicas
-            </button>
-          </div>
-      
-          {/* Contenido de las pestañas */}
-          {userActiveTab === 'mis-datos' && (
-            <MisDatos userData={userData} />
-          )}
-      
-          {userActiveTab === 'boletas' && (
-            <div className="rounded-xl shadow-sm p-6" style={{ 
-              backgroundColor: 'white',
-              border: `1px solid ${colors.primary[100]}`
-            }}>
-              <MisBoletas userId={userId} />
-            </div>
-          )}
-      
-          {userActiveTab === 'caja' && (
-            <div className="rounded-xl shadow-sm p-6" style={{ 
-              backgroundColor: 'white',
-              border: `1px solid ${colors.primary[100]}`
-            }}>
-              <MiCaja userId={userId} />
-            </div>
-          )}
-        </>
-      );
-    };
+      {/* Contenido de la pestaña activa */}
+      {userActiveTab === 'caja' && (
+        <div 
+          className="rounded-xl shadow-sm p-6 bg-white"
+          style={{ 
+            border: `1px solid ${colors.primary[100]}`
+          }}
+        >
+          <MiCaja userId={userId} />
+        </div>
+      )}
+    </div>
+  );
+};
 
 
   return (
