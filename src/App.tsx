@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import './index.css'; 
 import { Truck, Clock, MapPin, LogIn, LogOut, Calendar, User, MapPinned, Timer, FileText, Upload, Download, Table2Icon, Table, PanelsTopLeft, PersonStanding, PersonStandingIcon , Eye, EyeOff, DollarSignIcon, BadgeDollarSignIcon} from 'lucide-react';
@@ -8,9 +8,10 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'moment/locale/es';
 import { Combobox } from '@headlessui/react'; 
 import { Pie } from 'react-chartjs-2';
-import {   Chart as ChartJS,   ArcElement,   Tooltip,   Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title } from 'chart.js';
+import {   Chart as ChartJS,   ArcElement,   Tooltip,   Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title, Filler } from 'chart.js';
+import { Line } from 'react-chartjs-2';
 
-ChartJS.register(  ArcElement,  Tooltip,  Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title);
+ChartJS.register(  ArcElement,  Tooltip,  Legend,  CategoryScale,  LinearScale,  BarElement,  PointElement,  LineElement,  Title, Filler);
 
 
 // Custom Molar Tooth Icon
@@ -78,7 +79,6 @@ function IniciarSesion() {
     try {
       console.log('🔑 Iniciando proceso de login...');
       
-      // Clear any existing session first
       await supabase.auth.signOut();
       console.log('🧹 Sesión anterior limpiada');
 
@@ -96,13 +96,10 @@ function IniciarSesion() {
       
       if (data?.user) {
         console.log('👤 Usuario autenticado:', data.user);
-        // Store user data in localStorage
         localStorage.setItem('user', JSON.stringify({
           id: data.user.id,
           email: data.user.email
         }));
-        
-        // Navigate to main page
         navigate('/caja');
       }
     } catch (error) {
@@ -113,108 +110,87 @@ function IniciarSesion() {
     }
   };
 
-  const clearAuthStorage = async () => {
-    try {
-      console.log('🧹 Limpiando almacenamiento de autenticación...');
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut();
-      
-      // Clear all state
-      setUserId(null);
-      setUserData(null);
-      setPacientes([]);
-      setMedicos([]);
-      setRegistros([]);
-      setChartData(null);
-      setHistorialFiltrado([]);
-      
-      // Clear local storage
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      console.log('✅ Almacenamiento limpiado');
-      
-      // Show login form
-      setShowLogin(true);
-    } catch (error) {
-      console.error('❌ Error al limpiar almacenamiento:', error);
-      toast.error('Error al cerrar sesión');
-    }
-  };
-
-  // FORMULARIO LOGIN
-
   return (
-    
-    <div
-    className="min-h-screen flex items-center justify-center p-4"
-    style={{
-      background: `linear-gradient(to bottom, ${colors.primary[700]}, ${colors.primary[500]})`,
-    }}
-  >
-      <Toaster position="top-right" />
-      <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full" style={{ border: `1px solid ${colors.primary[100]}` }}>
-        <div className="flex items-center justify-center mb-8">
-          <MolarIcon className="w-12 h-12" style={{ color: colorPrimary }} />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <MolarIcon className="mx-auto h-12 w-12" stroke={colorPrimary} />
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            Andrew's Dental Group
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Sistema de Gestión Dental
+          </p>
         </div>
-        <h1 className="text-2xl font-bold text-center mb-6" style={{ color: colors.primary[500] }}>
-          Andrew's Dental Group
-        </h1>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              placeholder="Email"
-              required
-              autoComplete="username"
-              className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ backgroundColor: 'rgb(78, 2, 59)' }}
-            /> 
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Contraseña
-            </label>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="email" className="sr-only">Correo electrónico</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Correo electrónico"
+              />
+            </div>
             <div className="relative">
+              <label htmlFor="password" className="sr-only">Contraseña</label>
               <input
                 id="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password" 
-            value={password}
-            style={{ backgroundColor: 'rgb(78, 2, 59)' }}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Ingresa tu contraseña"
-                title="Contraseña de acceso"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Contraseña"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-sm text-gray-600"
-                
-                tabIndex={-1}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
               >
-                {showPassword ? <EyeOff size={25} /> : <Eye size={25} />}
+                {showPassword ? (
+                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
               </button>
             </div>
           </div>
 
-          <button
-            type="submit"
-            className="w-full flex justify-center py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50"
-            style={{ backgroundColor: colors.primary[500] }}
-            disabled={isLoading}
-          >
-            <LogIn className="w-5 h-5 mr-2" />
-            {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-          </button>
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white"
+              style={{
+                backgroundColor: colorPrimary,
+                opacity: isLoading ? 0.7 : 1
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-15" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Iniciando sesión...
+                </>
+              ) : 'Iniciar Sesión'}
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -236,12 +212,11 @@ type User  ={
 interface TipoMovimiento {
   id: number;
   nombre: string;
-  activo: boolean;
   tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
 }
 
 interface Medico {
-  id: string;
+  id: number;
   nombre: string;
   activo: boolean;
   especialidad?: string;
@@ -252,12 +227,14 @@ interface Medico {
 }
 
 interface Paciente {
-  id: string;
-  nombre: string;
+  id: number;
+  nombres: string;
+  apellido_paterno: string;
+  apellido_materno: string;
+  fecha_nacimiento?: string;
   activo: boolean;
   dni?: string;
   celular?: string;
-  fecha_nacimiento?: string;
   sexo?: 'M' | 'F' | 'O';
   telefono_fijo?: string;
   correo?: string;
@@ -277,14 +254,18 @@ interface Paciente {
 }
 
 interface RegistroCaja {
-  id: string;
+  id: number;
   fecha: string;
   tipo_movimiento_id: number;
-  tipo_movimiento?: TipoMovimiento;
+  tipo_movimiento?: {
+    id: number;
+    nombre: string;
+    tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+  };
   descripcion: string;
   valor: number;
-  numero_factura: string | null;
-  user_id: string;
+  numero_factura?: string;
+  user_id: number;
   created_at: string;
   usuario?: {
     nombre: string;
@@ -294,12 +275,41 @@ interface RegistroCaja {
   forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
 }
 
+interface HistorialMes {
+  mes: number;
+  registros: RegistroCaja[];
+  balanceMes: number;
+}
+
+interface HistorialAno {
+  ano: number;
+  meses: HistorialMes[];
+}
+
 const GestionDoctores: React.FC = () => {
-  // Estados
   const [medicos, setMedicos] = useState<Medico[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editingMedico, setEditingMedico] = useState<Medico | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMedico, setSelectedMedico] = useState<Medico | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
+  const [showAllDoctors, setShowAllDoctors] = useState(false);
+
+  const filteredMedicos = useMemo(() => {
+    return medicos.filter(medico => {
+      const matchesQuery = query === '' || 
+        medico.nombre.toLowerCase().includes(query.toLowerCase()) ||
+        (medico.especialidad?.toLowerCase().includes(query.toLowerCase())) ||
+        (medico.telefono?.includes(query)) ||
+        (medico.correo?.toLowerCase().includes(query.toLowerCase()));
+      
+      return showAllDoctors ? matchesQuery : (medico.activo && matchesQuery);
+    });
+  }, [medicos, query, showAllDoctors]);
+
+  const toggleShowAllDoctors = () => {
+    setShowAllDoctors(!showAllDoctors);
+  };
 
   // Campos del formulario
   const [nombre, setNombre] = useState('');
@@ -317,29 +327,28 @@ const GestionDoctores: React.FC = () => {
   const fetchMedicos = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('medicos').select('*');
-      if (error) throw error;
-      setMedicos(data || []);
+      const { data: medicosData, error: medicosError } = await supabase
+        .from('medicos')
+        .select('*')
+        ;
+
+      if (medicosError) throw medicosError;
+
+      const medicosFormateados: Medico[] = medicosData.map((medico: any) => ({
+        id: Number(medico.id),
+        nombre: String(medico.nombre),
+        activo: true,
+        fecha_ingreso: medico.fecha_ingreso ? String(medico.fecha_ingreso) : undefined,
+        especialidad: medico.especialidad ? String(medico.especialidad) : undefined
+      }));
+
+      setMedicos(medicosFormateados);
     } catch (err: any) {
       toast.error(`Error al cargar médicos: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
-
-  // Función de filtrado
-  const filteredMedicos = medicos.filter(medico => {
-    if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
-    
-    return (
-      (medico.nombre && medico.nombre.toLowerCase().includes(searchLower)) ||
-      (medico.especialidad && medico.especialidad.toLowerCase().includes(searchLower)) ||
-      (medico.telefono && medico.telefono.toLowerCase().includes(searchLower)) ||
-      (medico.correo && medico.correo.toLowerCase().includes(searchLower))
-    );
-  });
 
   const handleSave = async () => {
     if (!nombre || !fechaIngreso) {
@@ -357,12 +366,12 @@ const GestionDoctores: React.FC = () => {
     };
 
     try {
-      if (editingMedico) {
+      if (selectedMedico) {
         // Actualizar médico
         const { error } = await supabase
           .from('medicos')
           .update(medicoData)
-          .eq('id', editingMedico.id);
+          .eq('id', selectedMedico.id);
         if (error) throw error;
         toast.success('Médico actualizado correctamente');
       } else {
@@ -379,7 +388,7 @@ const GestionDoctores: React.FC = () => {
   };
 
   const handleEdit = (medico: Medico) => {
-    setEditingMedico(medico);
+    setSelectedMedico(medico);
     setNombre(medico.nombre || '');
     setEspecialidad(medico.especialidad || '');
     setTelefono(medico.telefono || '');
@@ -389,19 +398,30 @@ const GestionDoctores: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este médico?')) return;
+    if (!id || isNaN(Number(id))) {
+      toast.error('ID de médico inválido');
+      return;
+    }
+
+    if (!confirm('¿Está seguro de eliminar este médico?')) return;
+
     try {
-      const { error } = await supabase.from('medicos').delete().eq('id', id);
+      const { error } = await supabase
+        .from('medicos')
+        .update({ activo: false })
+        .eq('id', Number(id));
+
       if (error) throw error;
       toast.success('Médico eliminado correctamente');
       fetchMedicos();
-    } catch (error: any) {
-      toast.error(`Error al eliminar médico: ${error.message}`);
+    } catch (error) {
+      console.error('Error al eliminar médico:', error);
+      toast.error('Error al eliminar médico');
     }
   };
 
   const resetForm = () => {
-    setEditingMedico(null);
+    setSelectedMedico(null);
     setNombre('');
     setEspecialidad('');
     setTelefono('');
@@ -410,329 +430,323 @@ const GestionDoctores: React.FC = () => {
     setPorcentajeComision('');
   };
 
+  const handleSelectMedico = (medico: Medico) => {
+    setSelectedMedico(medico);
+    setIsDetailModalOpen(true);
+  };
+
+
+  
+
   return (
-    <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: colors.secondary[50] }}>
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-        <div 
-          className="p-6 text-white"
-          style={{ backgroundColor: colors.primary[500] }}
-        >
-          <h1 className="text-2xl md:text-3xl font-bold">Gestión de Médicos</h1>
-          <p className="opacity-90 mt-1">Administra los registros de médicos de tu clínica</p>
-        </div>
-      </div>
-
-      {/* Formulario */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-        <div 
-          className="px-6 py-4 text-white flex justify-between items-center"
-          style={{ backgroundColor: colors.primary[500] }}
-        >
-          <h2 className="text-xl font-semibold">
-            {editingMedico ? `Editando a ${nombre}` : 'Nuevo Médico'}
-          </h2>
-          {editingMedico && (
-            <button 
-              onClick={resetForm}
-              className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-full transition-colors"
-            >
-              Nuevo
-            </button>
-          )}
-        </div>
-        
-        <div className="p-6">
-          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-            {/* Información Básica */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Básica</h3>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Nombre Completo *</label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                  placeholder="Ej: Dr. Juan Pérez"
-                  style={{ borderColor: colors.neutral[300] }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Especialidad</label>
-                <input
-                  type="text"
-                  value={especialidad}
-                  onChange={(e) => setEspecialidad(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                  placeholder="Ej: Cardiología"
-                  style={{ borderColor: colors.neutral[300] }}
-                />
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div style={{ backgroundColor: colors.primary[500] }} className="shadow">
+        <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl md:text-2xl font-bold text-white">Gestión de Médicos</h1>
+              <span className="px-3 py-1 text-sm font-medium text-[#801461] bg-white rounded-full">
+                {medicos.length} {medicos.length === 1 ? 'médico' : 'médicos'}
+              </span>
             </div>
-
-            {/* Información de Contacto */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Teléfono</label>
-                  <input
-                    type="text"
-                    value={telefono}
-                    onChange={(e) => setTelefono(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: +51 987654321"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Correo Electrónico</label>
-                  <input
-                    type="email"
-                    value={correo}
-                    onChange={(e) => setCorreo(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: medico@clinica.com"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Información Laboral */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Laboral</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Fecha de Ingreso *</label>
-                  <input
-                    type="date"
-                    value={fechaIngreso}
-                    onChange={(e) => setFechaIngreso(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    style={{ borderColor: colors.neutral[300] }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Porcentaje de Comisión (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="100"
-                    value={porcentajeComision}
-                    onChange={(e) => setPorcentajeComision(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: 30.5"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Botones de acción */}
-            <div className="pt-4 flex flex-col sm:flex-row gap-3">
-              <button
-                type="submit"
-                className="flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center"
-                style={{ backgroundColor: colors.primary[500] }}
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-                {editingMedico ? 'Actualizar Médico' : 'Registrar Médico'}
-              </button>
-              
-              {editingMedico && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
-                  style={{ 
-                    color: colors.primary[600],
-                    border: `1px solid ${colors.primary[600]}`,
-                    backgroundColor: 'white'
-                  }}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {/* Lista de médicos */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div 
-          className="px-6 py-4 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-          style={{ backgroundColor: colors.primary[500] }}
-        >
-          <h2 className="text-xl font-semibold">Listado de Médicos</h2>
-          
-          <div className="relative w-full md:w-auto">
-            <input
-              type="text"
-              placeholder="Buscar por nombre, especialidad o teléfono..."
-              className="w-full py-2 px-4 rounded-full text-sm text-gray-800 focus:outline-none focus:ring-2"
-              style={{ 
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                minWidth: '250px'
+            <button
+              onClick={() => {
+                setSelectedMedico(null);
+                setIsModalOpen(true);
               }}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <svg 
-              className="absolute right-3 top-2.5 h-4 w-4 text-white" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-[#801461] bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Nuevo Médico
+            </button>
           </div>
         </div>
+      </div>
 
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div 
-                className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
-                style={{ borderColor: colors.primary[500] }}
-              ></div>
-            </div>
-          ) : filteredMedicos.length === 0 ? (
-            <div className="text-center py-12">
-              <svg 
-                className="mx-auto h-16 w-16 text-gray-400" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+      {/* Main Content */}
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+              <button
+                onClick={toggleShowAllDoctors}
+                className={`px-4 py-2 text-sm font-medium rounded-md ${
+                  showAllDoctors
+                    ? 'text-white hover:bg-[#6a1252]'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                style={showAllDoctors ? { backgroundColor: colors.primary[500] } : {}}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
-                {searchTerm ? 'No se encontraron resultados' : 'No hay médicos registrados'}
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza agregando un nuevo médico'}
-              </p>
+                {showAllDoctors ? 'Mostrar Solo Activos' : 'Mostrar Todos'}
+              </button>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Especialidad
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Teléfono
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Correo
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Comisión
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Médico
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Especialidad
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                      Contacto
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ingreso
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comisión
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
+                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                      Cargando médicos...
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredMedicos.map((medico) => (
-                    <tr key={medico.id} className="hover:bg-gray-50">
+                ) : filteredMedicos.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                      No se encontraron médicos
+                    </td>
+                  </tr>
+                ) : (
+                  filteredMedicos.map((medico) => (
+                    <tr
+                      key={medico.id}
+                      onClick={() => handleSelectMedico(medico)}
+                      className="hover:bg-gray-50 cursor-pointer"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
-                            style={{ backgroundColor: colors.primary[400] }}
-                          >
-                            {medico.nombre?.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {medico.nombre}
-                            </div>
-                          </div>
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{medico.nombre}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{medico.especialidad || '-'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">{medico.telefono || '-'}</div>
-                        <div className="text-sm text-gray-500">{medico.correo || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(medico.fecha_ingreso).toLocaleDateString()}
-                        </div>
+                        <div className="text-sm text-gray-900">{medico.correo || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                          style={{ 
-                            backgroundColor: colors.primary[50],
-                            color: colors.primary[700]
-                          }}
-                        >
-                          {medico.porcentaje_comision !== null ? `${medico.porcentaje_comision}%` : '-'}
+                        <div className="text-sm text-gray-900">{medico.porcentaje_comision ? `${medico.porcentaje_comision}%` : '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          medico.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {medico.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
-                          <button
-                            onClick={() => handleEdit(medico)}
-                            className="text-primary-600 hover:text-primary-900"
-                            style={{ color: colors.primary[500] }}
-                          >
-                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(medico.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(medico);
+                          }}
+                          style={{ color: colors.primary[500] }}
+                          className="hover:text-[#6a1252] mr-4"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(medico.id.toString());
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Eliminar
+                        </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
+      {/* Modal para crear/editar médico */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200" style={{ backgroundColor: colors.primary[500] }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">
+                  {selectedMedico ? 'Editar Médico' : 'Nuevo Médico'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
+                  className="text-white hover:text-gray-200"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                {/* Información Básica */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Información Básica</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
+                        Nombre Completo *
+                      </label>
+                      <input
+                        type="text"
+                        id="nombre"
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="especialidad" className="block text-sm font-medium text-gray-700">
+                        Especialidad
+                      </label>
+                      <input
+                        type="text"
+                        id="especialidad"
+                        value={especialidad}
+                        onChange={(e) => setEspecialidad(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información de Contacto */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Información de Contacto</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="telefono" className="block text-sm font-medium text-gray-700">
+                        Teléfono
+                      </label>
+                      <input
+                        type="tel"
+                        id="telefono"
+                        value={telefono}
+                        onChange={(e) => setTelefono(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="correo" className="block text-sm font-medium text-gray-700">
+                        Correo Electrónico
+                      </label>
+                      <input
+                        type="email"
+                        id="correo"
+                        value={correo}
+                        onChange={(e) => setCorreo(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información Laboral */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">Información Laboral</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="fechaIngreso" className="block text-sm font-medium text-gray-700">
+                        Fecha de Ingreso *
+                      </label>
+                      <input
+                        type="date"
+                        id="fechaIngreso"
+                        value={fechaIngreso}
+                        onChange={(e) => setFechaIngreso(e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="porcentajeComision" className="block text-sm font-medium text-gray-700">
+                        Porcentaje de Comisión (%)
+                      </label>
+                      <input
+                        type="number"
+                        id="porcentajeComision"
+                        value={porcentajeComision}
+                        onChange={(e) => setPorcentajeComision(e.target.value)}
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#801461] focus:ring-[#801461] sm:text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      resetForm();
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#801461]"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    style={{ backgroundColor: colors.primary[500] }}
+                    className="px-4 py-2 text-sm font-medium text-white border border-transparent rounded-md hover:bg-[#6a1252] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#801461]"
+                  >
+                    {selectedMedico ? 'Actualizar' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 const GestionPaciente: React.FC = () => {
-  // Estados
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-   
-  // Campos del formulario
+  const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
+  const [query, setQuery] = useState('');
+  const [showAllPatients, setShowAllPatients] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Form states
   const [dni, setDni] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidoPaterno, setApellidoPaterno] = useState('');
@@ -753,139 +767,100 @@ const GestionPaciente: React.FC = () => {
   const [ocupacion, setOcupacion] = useState('');
   const [referencia, setReferencia] = useState('');
   const [historialDental, setHistorialDental] = useState('');
-  const [showAllPatients, setShowAllPatients] = useState(false);
 
-  // Función para manejar la visualización de todos los pacientes
   const toggleShowAllPatients = () => {
     setShowAllPatients(!showAllPatients);
   };
 
-  // Cargar pacientes al iniciar
+  const fetchPacientes = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('*')
+        .order('nombres', { ascending: true });
+
+      if (error) throw error;
+      setPacientes(data || []);
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
+      toast.error('Error al cargar lista de pacientes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPacientes();
   }, []);
 
-  const fetchPacientes = async () => {
-    try {
-      //console.log('🔍 Iniciando carga de pacientes...');
-      const { data, error } = await supabase
-        .from('pacientes')
-        .select('*')
-        .eq('activo', true);
-
-      if (error) {
-        console.error('❌ Error al cargar pacientes:', error);
-        throw error;
-      }
-
-      //console.log('📦 Datos recibidos de la base de datos:', data);
-
-      // Transform the data to match our new structure
-      const pacientesTransformados = data.map(paciente => {
-        const nombreCompleto = paciente.nombres ? 
-          `${paciente.nombres} ${paciente.apellido_paterno || ''} ${paciente.apellido_materno || ''}`.trim() : 
-          paciente.nombre;
-        
-       
-
-        return {
-          ...paciente,
-          nombre: nombreCompleto
-        };
-      });
-
-      console.log('✅ Pacientes transformados:', pacientesTransformados);
-      setPacientes(pacientesTransformados);
-    } catch (error) {
-      console.error('❌ Error completo al cargar pacientes:', error);
-      toast.error('Error al cargar lista de pacientes');
-    }
-  };
-
-  // Función de filtrado
-
-const filteredPacientes = pacientes.filter(paciente => {
-  if (!searchTerm) return true; // Si no hay término de búsqueda, mostrar todos
-  
-  const searchLower = searchTerm.toLowerCase();
-  
-  // Verificar cada campo con manejo de valores nulos
-  return (
-    (paciente.dni && paciente.dni.toLowerCase().includes(searchLower)) ||
-    (paciente.nombres && paciente.nombres.toLowerCase().includes(searchLower)) ||
-    (paciente.apellido_paterno && paciente.apellido_paterno.toLowerCase().includes(searchLower)) ||
-    (paciente.apellido_materno && paciente.apellido_materno.toLowerCase().includes(searchLower)) ||
-    (paciente.celular && paciente.celular.toLowerCase().includes(searchLower))
-  );
-});
-
-  // Función para seleccionar paciente
   const handleSelectPaciente = (paciente: Paciente) => {
-    setSelectedPaciente(paciente === selectedPaciente ? null : paciente);
+    setSelectedPaciente(paciente);
+    setIsDetailModalOpen(true);
   };
 
   const handleSave = async () => {
-    if (!dni || !nombres || !apellidoPaterno || !fechaNacimiento || !celular) {
-      toast.error('DNI, nombres, apellido paterno, fecha de nacimiento y celular son obligatorios');
-      return;
-    }
-
-    const pacienteData = {
-      dni,
-      nombres,
-      apellido_paterno: apellidoPaterno,
-      apellido_materno: apellidoMaterno || null,
-      fecha_nacimiento: fechaNacimiento,
-      sexo,
-      celular,
-      telefono_fijo: telefonoFijo || null,
-      correo: correo || null,
-      direccion: direccion || null,
-      distrito: distrito || null,
-      grupo_sanguineo: grupoSanguineo || null,
-      alergias: alergias || null,
-      enfermedades_cronicas: enfermedadesCronicas || null,
-      medicamentos_actuales: medicamentosActuales || null,
-      seguro_medico: seguroMedico || null,
-      estado_civil: estadoCivil || null,
-      ocupacion: ocupacion || null,
-      referencia: referencia || null,
-      historial_dental: historialDental || null,
-    };
-
     try {
+      const pacienteData = {
+        dni,
+        nombres,
+        apellido_paterno: apellidoPaterno,
+        apellido_materno: apellidoMaterno,
+        fecha_nacimiento: fechaNacimiento,
+        sexo,
+        celular,
+        telefono_fijo: telefonoFijo,
+        correo,
+        direccion,
+        distrito,
+        grupo_sanguineo: grupoSanguineo,
+        alergias,
+        enfermedades_cronicas: enfermedadesCronicas,
+        medicamentos_actuales: medicamentosActuales,
+        seguro_medico: seguroMedico,
+        estado_civil: estadoCivil,
+        ocupacion,
+        referencia,
+        historial_dental: historialDental,
+        activo: true,
+        fecha_registro: new Date().toISOString()
+      };
+
       if (editingPaciente) {
-        // Actualizar paciente
         const { error } = await supabase
           .from('pacientes')
           .update(pacienteData)
           .eq('id', editingPaciente.id);
+
         if (error) throw error;
         toast.success('Paciente actualizado correctamente');
       } else {
-        // Crear nuevo paciente
-        const { error } = await supabase.from('pacientes').insert([pacienteData]);
+        const { error } = await supabase
+          .from('pacientes')
+          .insert([pacienteData]);
+
         if (error) throw error;
         toast.success('Paciente registrado correctamente');
       }
+
+      setIsModalOpen(false);
       resetForm();
       fetchPacientes();
-      setSelectedPaciente(null);
-    } catch (err: any) {
-      toast.error(`Error al guardar paciente: ${err.message}`);
+    } catch (error: any) {
+      console.error('Error al guardar paciente:', error);
+      toast.error(error.message || 'Error al guardar paciente');
     }
   };
 
   const handleEdit = (paciente: Paciente) => {
     setEditingPaciente(paciente);
-    setSelectedPaciente(paciente);
-    setDni(paciente.dni);
+    setDni(paciente.dni || '');
     setNombres(paciente.nombres);
     setApellidoPaterno(paciente.apellido_paterno);
     setApellidoMaterno(paciente.apellido_materno || '');
-    setFechaNacimiento(paciente.fecha_nacimiento);
-    setSexo(paciente.sexo);
-    setCelular(paciente.celular);
+    setFechaNacimiento(paciente.fecha_nacimiento || '');
+    setSexo(paciente.sexo || 'M');
+    setCelular(paciente.celular || '');
     setTelefonoFijo(paciente.telefono_fijo || '');
     setCorreo(paciente.correo || '');
     setDireccion(paciente.direccion || '');
@@ -902,17 +877,23 @@ const filteredPacientes = pacientes.filter(paciente => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este paciente?')) return;
+    if (!window.confirm('¿Está seguro de eliminar este paciente?')) return;
+
     try {
-      const { error } = await supabase.from('pacientes').delete().eq('id', id);
+      const { error } = await supabase
+        .from('pacientes')
+        .delete()
+        .eq('id', id);
+
       if (error) throw error;
       toast.success('Paciente eliminado correctamente');
       fetchPacientes();
-      if (selectedPaciente?.id === id) {
+      if (selectedPaciente?.id === Number(id)) {
         setSelectedPaciente(null);
       }
     } catch (error: any) {
-      toast.error(`Error al eliminar paciente: ${error.message}`);
+      console.error('Error al eliminar paciente:', error);
+      toast.error(error.message || 'Error al eliminar paciente');
     }
   };
 
@@ -939,84 +920,267 @@ const filteredPacientes = pacientes.filter(paciente => {
     setReferencia('');
     setHistorialDental('');
   };
-const pacientesToShow = showAllPatients ? filteredPacientes : filteredPacientes.slice(0, 15);
+
+  const filteredPacientes = useMemo(() => {
+    return pacientes.filter(paciente => {
+      const searchTerm = query.toLowerCase();
+      return (
+        paciente.nombres.toLowerCase().includes(searchTerm) ||
+        paciente.apellido_paterno.toLowerCase().includes(searchTerm) ||
+        paciente.apellido_materno?.toLowerCase().includes(searchTerm) ||
+        paciente.dni?.toLowerCase().includes(searchTerm) ||
+        paciente.celular?.toLowerCase().includes(searchTerm) ||
+        paciente.correo?.toLowerCase().includes(searchTerm)
+      );
+    });
+  }, [pacientes, query]);
+
+  const pacientesToShow = showAllPatients ? filteredPacientes : filteredPacientes.slice(0, 15);
+
   return (
-  <div className="min-h-screen p-4 md:p-6" style={{ backgroundColor: colors.secondary[50] }}>
-    {/* Header */}
-    <div className="bg-white rounded-xl shadow-md overflow-hidden mb-6">
-      <div
-        className="p-6 text-white"
-        style={{ backgroundColor: colors.primary[500] }}
-      >
-        <h1 className="text-2xl md:text-3xl font-bold">Gestión de Pacientes</h1>
-        <p className="opacity-90 mt-1">Administra los registros de pacientes de tu clínica</p>
-      </div>
-    </div>
-
-    {/* Botón para abrir el modal de nuevo paciente */}
-    <div className="mb-6">
-      <button
-        onClick={() => {
-          resetForm();
-          setIsModalOpen(true);
-        }}
-        className="px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center"
-        style={{ backgroundColor: colors.primary[500] }}
-      >
-        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Nuevo Paciente
-      </button>
-    </div>
-
-    {/* Modal para el formulario de paciente */}
-    {isModalOpen && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div 
-            className="px-6 py-4 text-white flex justify-between items-center sticky top-0"
-            style={{ backgroundColor: colors.primary[500] }}
-          >
-            <h2 className="text-xl font-semibold">
-              {editingPaciente ? `Editando a ${nombres} ${apellidoPaterno}` : 'Nuevo Paciente'}
-            </h2>
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="text-white hover:text-gray-200"
+    <div className="min-h-screen bg-gray-50">
+    {/* Header Section */}
+    <div style={{ backgroundColor: colors.primary[500] }} className="shadow">
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-4">
+              <h1 className="text-xl md:text-2xl font-bold text-white">Gestión de Pacientes</h1>
+              <span className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+                {pacientes.length} {pacientes.length === 1 ? 'paciente' : 'pacientes'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                setSelectedPaciente(null);
+                setIsModalOpen(true);
+              }}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-[#801461] rounded-md hover:bg-[#6a1252] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#801461]"
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
+              Nuevo Paciente
             </button>
           </div>
-          
-          <div className="p-6">
-            <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-              {/* Información Personal */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Personal</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        {/* Search and Filters */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                  <input
+                    type="text"
+              placeholder="Buscar pacientes..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+              </div>
+              <button
+            onClick={toggleShowAllPatients}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center justify-center"
+          >
+            {showAllPatients ? 'Mostrar Menos' : 'Mostrar Todos'}
+              </button>
+          </div>
+
+        {/* Patients List */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Paciente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    DNI
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Teléfono
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center">
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary-500 border-t-transparent"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredPacientes.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                      No se encontraron pacientes
+                    </td>
+                  </tr>
+                ) : (
+                  pacientesToShow.map((paciente) => (
+                    <tr
+                      key={paciente.id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleSelectPaciente(paciente)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {`${paciente.nombres} ${paciente.apellido_paterno} ${paciente.apellido_materno || ''}`}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {paciente.correo || 'Sin correo'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {paciente.dni || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {paciente.celular || paciente.telefono_fijo || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          paciente.activo 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {paciente.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(paciente);
+                              setIsModalOpen(true);
+                            }}
+                            className="text-primary-600 hover:text-primary-900"
+                            style={{ color: colors.primary[500] }}
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(paciente.id.toString());
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Patient Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 z-10">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {editingPaciente ? 'Editar Paciente' : 'Nuevo Paciente'}
+                </h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información Personal</h3>
+                  
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>DNI *</label>
+                    <label className="block text-sm font-medium text-gray-700">DNI *</label>
                     <input
                       type="text"
                       value={dni}
                       onChange={(e) => setDni(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: 12345678"
-                      style={{ borderColor: colors.neutral[300] }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Sexo *</label>
+                    <label className="block text-sm font-medium text-gray-700">Nombres *</label>
+                    <input
+                      type="text"
+                      value={nombres}
+                      onChange={(e) => setNombres(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Apellido Paterno *</label>
+                    <input
+                      type="text"
+                      value={apellidoPaterno}
+                      onChange={(e) => setApellidoPaterno(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Apellido Materno</label>
+                    <input
+                      type="text"
+                      value={apellidoMaterno}
+                      onChange={(e) => setApellidoMaterno(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Fecha de Nacimiento *</label>
+                    <input
+                      type="date"
+                      value={fechaNacimiento}
+                      onChange={(e) => setFechaNacimiento(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Sexo *</label>
                     <select
                       value={sexo}
                       onChange={(e) => setSexo(e.target.value as 'M' | 'F' | 'O')}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      style={{ borderColor: colors.neutral[300] }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                       required
                     >
                       <option value="M">Masculino</option>
@@ -1026,534 +1190,349 @@ const pacientesToShow = showAllPatients ? filteredPacientes : filteredPacientes.
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Nombres *</label>
-                  <input
-                    type="text"
-                    value={nombres}
-                    onChange={(e) => setNombres(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Juan Carlos"
-                    style={{ borderColor: colors.neutral[300] }}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información de Contacto</h3>
+                  
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Apellido Paterno *</label>
+                    <label className="block text-sm font-medium text-gray-700">Celular *</label>
                     <input
-                      type="text"
-                      value={apellidoPaterno}
-                      onChange={(e) => setApellidoPaterno(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: Pérez"
-                      style={{ borderColor: colors.neutral[300] }}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Apellido Materno</label>
-                    <input
-                      type="text"
-                      value={apellidoMaterno}
-                      onChange={(e) => setApellidoMaterno(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: Gómez"
-                      style={{ borderColor: colors.neutral[300] }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Fecha de Nacimiento *</label>
-                  <input
-                    type="date"
-                    value={fechaNacimiento}
-                    onChange={(e) => setFechaNacimiento(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    style={{ borderColor: colors.neutral[300] }}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Información de Contacto */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Celular *</label>
-                    <input
-                      type="text"
+                      type="tel"
                       value={celular}
                       onChange={(e) => setCelular(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: 987654321"
-                      style={{ borderColor: colors.neutral[300] }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                       required
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Teléfono Fijo</label>
+                    <label className="block text-sm font-medium text-gray-700">Teléfono Fijo</label>
                     <input
-                      type="text"
+                      type="tel"
                       value={telefonoFijo}
                       onChange={(e) => setTelefonoFijo(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: 012345678"
-                      style={{ borderColor: colors.neutral[300] }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Correo Electrónico</label>
-                  <input
-                    type="email"
-                    value={correo}
-                    onChange={(e) => setCorreo(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: paciente@example.com"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Dirección</label>
-                  <input
-                    type="text"
-                    value={direccion}
-                    onChange={(e) => setDireccion(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Av. Principal 123"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Distrito</label>
-                  <input
-                    type="text"
-                    value={distrito}
-                    onChange={(e) => setDistrito(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Miraflores"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-              </div>
-
-              {/* Información Médica */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Médica</h3>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Grupo Sanguíneo</label>
-                  <input
-                    type="text"
-                    value={grupoSanguineo}
-                    onChange={(e) => setGrupoSanguineo(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: O+"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Alergias</label>
-                  <input
-                    type="text"
-                    value={alergias}
-                    onChange={(e) => setAlergias(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Penicilina, polen"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Enfermedades Crónicas</label>
-                  <input
-                    type="text"
-                    value={enfermedadesCronicas}
-                    onChange={(e) => setEnfermedadesCronicas(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Diabetes, hipertensión"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Medicamentos Actuales</label>
-                  <input
-                    type="text"
-                    value={medicamentosActuales}
-                    onChange={(e) => setMedicamentosActuales(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Metformina 500mg"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Seguro Médico</label>
-                  <input
-                    type="text"
-                    value={seguroMedico}
-                    onChange={(e) => setSeguroMedico(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Essalud"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-              </div>
-
-              {/* Información Adicional */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium mb-2" style={{ color: colors.primary[600] }}>Información Adicional</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Estado Civil</label>
+                    <label className="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      value={correo}
+                      onChange={(e) => setCorreo(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Dirección</label>
                     <input
                       type="text"
-                      value={estadoCivil}
-                      onChange={(e) => setEstadoCivil(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: Casado"
-                      style={{ borderColor: colors.neutral[300] }}
+                      value={direccion}
+                      onChange={(e) => setDireccion(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Ocupación</label>
+                    <label className="block text-sm font-medium text-gray-700">Distrito</label>
+                    <input
+                      type="text"
+                      value={distrito}
+                      onChange={(e) => setDistrito(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Medical Information */}
+              <div className="mt-6 space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Información Médica</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Grupo Sanguíneo</label>
+                    <input
+                      type="text"
+                      value={grupoSanguineo}
+                      onChange={(e) => setGrupoSanguineo(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Alergias</label>
+                    <textarea
+                      value={alergias}
+                      onChange={(e) => setAlergias(e.target.value)}
+                      rows={2}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Enfermedades Crónicas</label>
+                    <textarea
+                      value={enfermedadesCronicas}
+                      onChange={(e) => setEnfermedadesCronicas(e.target.value)}
+                      rows={2}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Medicamentos Actuales</label>
+                    <textarea
+                      value={medicamentosActuales}
+                      onChange={(e) => setMedicamentosActuales(e.target.value)}
+                      rows={2}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="mt-6 space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Información Adicional</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Seguro Médico</label>
+                    <input
+                      type="text"
+                      value={seguroMedico}
+                      onChange={(e) => setSeguroMedico(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Estado Civil</label>
+                    <select
+                      value={estadoCivil}
+                      onChange={(e) => setEstadoCivil(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="Soltero">Soltero(a)</option>
+                      <option value="Casado">Casado(a)</option>
+                      <option value="Divorciado">Divorciado(a)</option>
+                      <option value="Viudo">Viudo(a)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Ocupación</label>
                     <input
                       type="text"
                       value={ocupacion}
                       onChange={(e) => setOcupacion(e.target.value)}
-                      className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                      placeholder="Ej: Ingeniero"
-                      style={{ borderColor: colors.neutral[300] }}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Referencia</label>
+                    <input
+                      type="text"
+                      value={referencia}
+                      onChange={(e) => setReferencia(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">Historial Dental</label>
+                    <textarea
+                      value={historialDental}
+                      onChange={(e) => setHistorialDental(e.target.value)}
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Referencia</label>
-                  <input
-                    type="text"
-                    value={referencia}
-                    onChange={(e) => setReferencia(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    placeholder="Ej: Amigo, familiar"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: colors.primary[600] }}>Historial Dental</label>
-                  <textarea
-                    value={historialDental}
-                    onChange={(e) => setHistorialDental(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 p-3 border text-sm"
-                    rows={3}
-                    placeholder="Notas sobre el historial dental del paciente"
-                    style={{ borderColor: colors.neutral[300] }}
-                  />
-                </div>
               </div>
 
-              {/* Botones de acción */}
-              <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 rounded-lg font-medium text-white transition-colors flex items-center justify-center"
-                  style={{ backgroundColor: colors.primary[500] }}
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                  {editingPaciente ? 'Actualizar Paciente' : 'Registrar Paciente'}
-                </button>
-                
+              {/* Form Actions */}
+              <div className="mt-6 flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center"
-                  style={{ 
-                    color: colors.primary[600],
-                    border: `1px solid ${colors.primary[600]}`,
-                    backgroundColor: 'white'
-                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white"
+                  style={{ backgroundColor: colors.primary[500] }}
+                >
+                  {editingPaciente ? 'Actualizar' : 'Guardar'}
                 </button>
               </div>
             </form>
           </div>
         </div>
-      </div>
-    )}
-  
+      )}
 
-    {/* Lista de pacientes */}
-     <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div 
-          className="px-6 py-4 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-          style={{ backgroundColor: colors.primary[500] }}
-        >
-          <h2 className="text-xl font-semibold">Listado de Pacientes</h2>
-          <p className="text-sm text-white">
-            Total: {filteredPacientes.length} {!showAllPatients && filteredPacientes.length > 15 && `(mostrando 15 de ${filteredPacientes.length})`}
-          </p>
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative w-full md:w-auto">
-              <input
-                type="text"
-                placeholder="Buscar por DNI, nombre o teléfono..."
-                className="w-full py-2 px-4 rounded-full text-sm text-gray-800 focus:outline-none focus:ring-2"
-                style={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  minWidth: '250px'
-                }}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <svg 
-                className="absolute right-3 top-2.5 h-4 w-4 text-white" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      {/* Patient Detail Modal */}
+      {isDetailModalOpen && selectedPaciente && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 z-10">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Detalles del Paciente
+                </h2>
+                <button
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            {filteredPacientes.length > 15 && (
-              <button
-                onClick={toggleShowAllPatients}
-                className="px-4 py-2 rounded-lg font-medium text-white transition-colors flex items-center justify-center text-sm"
-                style={{ 
-                  backgroundColor: colors.primary[700],
-                  border: `1px solid ${colors.primary[300]}`,
-                }}
-              >
-                {showAllPatients ? (
-                  <>
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                    Mostrar menos
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                    Ver todos
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        </div>
 
-        <div className="p-6">
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <div 
-                className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2"
-                style={{ borderColor: colors.primary[500] }}
-              ></div>
-            </div>
-          ) : filteredPacientes.length === 0 ? (
-            <div className="text-center py-12">
-              <svg 
-                className="mx-auto h-16 w-16 text-gray-400" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">
-                {searchTerm ? 'No se encontraron resultados' : 'No hay pacientes registrados'}
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza agregando un nuevo paciente'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Paciente
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      DNI
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                      Contacto
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Edad
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {pacientesToShow.map((paciente) => {
-                    const edad = paciente.fecha_nacimiento 
-                      ? new Date().getFullYear() - new Date(paciente.fecha_nacimiento).getFullYear() 
-                      : 'N/A';
-                    
-                    return (
-                      <tr 
-                        key={paciente.id} 
-                        className={`hover:bg-gray-50 ${selectedPaciente?.id === paciente.id ? 'bg-blue-50' : ''}`}
-                        onClick={() => handleSelectPaciente(paciente)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-white font-medium"
-                              style={{ backgroundColor: colors.primary[400] }}
-                            >
-                              {paciente.nombres.charAt(0)}{paciente.apellido_paterno.charAt(0)}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
-                                {`${paciente.nombres} ${paciente.apellido_paterno} ${paciente.apellido_materno || ''}`}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{paciente.dni}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                          <div className="text-sm text-gray-900">{paciente.celular}</div>
-                          <div className="text-sm text-gray-500">{paciente.correo || '-'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                            style={{ 
-                              backgroundColor: colors.primary[50],
-                              color: colors.primary[700]
-                            }}
-                          >
-                            {edad} años
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(paciente);
-                                setIsModalOpen(true);
-                              }}
-                              className="text-primary-600 hover:text-primary-900"
-                              style={{ color: colors.primary[500] }}
-                            >
-                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(paciente.id);
-                              }}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información Personal</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">DNI</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.dni || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Nombres Completos</label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {`${selectedPaciente.nombres} ${selectedPaciente.apellido_paterno} ${selectedPaciente.apellido_materno || ''}`}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Fecha de Nacimiento</label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedPaciente.fecha_nacimiento ? new Date(selectedPaciente.fecha_nacimiento).toLocaleDateString() : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Sexo</label>
+                      <p className="mt-1 text-sm text-gray-900">
+                        {selectedPaciente.sexo === 'M' ? 'Masculino' : selectedPaciente.sexo === 'F' ? 'Femenino' : 'Otro'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
 
-    {/* Detalles del paciente seleccionado */}
-    {selectedPaciente && (
-      <div className="mt-6 bg-white rounded-xl shadow-md overflow-hidden">
-        <div 
-          className="px-6 py-4 text-white flex justify-between items-center"
-          style={{ backgroundColor: colors.primary[500] }}
-        >
-          <h2 className="text-xl font-semibold">Detalles del Paciente</h2>
-          <button 
-            onClick={() => setSelectedPaciente(null)}
-            className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-full transition-colors"
-          >
-            Cerrar
-          </button>
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Personal</h3>
-            <div className="space-y-3">
-              <p><span className="font-medium">Nombre completo:</span> {`${selectedPaciente.nombres} ${selectedPaciente.apellido_paterno} ${selectedPaciente.apellido_materno || ''}`}</p>
-              <p><span className="font-medium">DNI:</span> {selectedPaciente.dni}</p>
-              <p><span className="font-medium">Fecha de Nacimiento:</span> {new Date(selectedPaciente.fecha_nacimiento).toLocaleDateString()}</p>
-              <p><span className="font-medium">Edad:</span> {new Date().getFullYear() - new Date(selectedPaciente.fecha_nacimiento).getFullYear()} años</p>
-              <p><span className="font-medium">Sexo:</span> {selectedPaciente.sexo === 'M' ? 'Masculino' : selectedPaciente.sexo === 'F' ? 'Femenino' : 'Otro'}</p>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información de Contacto</h3>
-            <div className="space-y-3">
-              <p><span className="font-medium">Celular:</span> {selectedPaciente.celular}</p>
-              <p><span className="font-medium">Teléfono Fijo:</span> {selectedPaciente.telefono_fijo || '-'}</p>
-              <p><span className="font-medium">Correo:</span> {selectedPaciente.correo || '-'}</p>
-              <p><span className="font-medium">Dirección:</span> {selectedPaciente.direccion || '-'}</p>
-              <p><span className="font-medium">Distrito:</span> {selectedPaciente.distrito || '-'}</p>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Médica</h3>
-            <div className="space-y-3">
-              <p><span className="font-medium">Grupo Sanguíneo:</span> {selectedPaciente.grupo_sanguineo || '-'}</p>
-              <p><span className="font-medium">Alergias:</span> {selectedPaciente.alergias || 'Ninguna'}</p>
-              <p><span className="font-medium">Enfermedades Crónicas:</span> {selectedPaciente.enfermedades_cronicas || 'Ninguna'}</p>
-              <p><span className="font-medium">Medicamentos Actuales:</span> {selectedPaciente.medicamentos_actuales || 'Ninguno'}</p>
-              <p><span className="font-medium">Seguro Médico:</span> {selectedPaciente.seguro_medico || '-'}</p>
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-4" style={{ color: colors.primary[600] }}>Información Adicional</h3>
-            <div className="space-y-3">
-              <p><span className="font-medium">Estado Civil:</span> {selectedPaciente.estado_civil || '-'}</p>
-              <p><span className="font-medium">Ocupación:</span> {selectedPaciente.ocupacion || '-'}</p>
-              <p><span className="font-medium">Referencia:</span> {selectedPaciente.referencia || '-'}</p>
-              <p><span className="font-medium">Historial Dental:</span></p>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                {selectedPaciente.historial_dental || 'No hay registros'}
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información de Contacto</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Celular</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.celular || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Teléfono Fijo</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.telefono_fijo || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Correo Electrónico</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.correo || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Dirección</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.direccion || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Distrito</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.distrito || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medical Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información Médica</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Grupo Sanguíneo</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.grupo_sanguineo || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Alergias</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.alergias || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Enfermedades Crónicas</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.enfermedades_cronicas || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Medicamentos Actuales</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.medicamentos_actuales || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Información Adicional</h3>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Seguro Médico</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.seguro_medico || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Estado Civil</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.estado_civil || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Ocupación</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.ocupacion || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Referencia</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.referencia || '-'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500">Historial Dental</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedPaciente.historial_dental || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cerrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleEdit(selectedPaciente);
+                    setIsDetailModalOpen(false);
+                    setIsModalOpen(true);
+                  }}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white"
+                  style={{ backgroundColor: colors.primary[500] }}
+                >
+                  Editar Paciente
+                </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
 };
 
 
@@ -1571,9 +1550,15 @@ function MiCaja({ userId }: { userId: string }) {
   const [tipoMovimientoId, setTipoMovimientoId] = useState<number | null>(null);
   const [tiposMovimiento, setTiposMovimiento] = useState<TipoMovimiento[]>([]);
   const [historialVisible, setHistorialVisible] = useState(false);
-  const [historialFiltrado, setHistorialFiltrado] = useState<{ano: number, meses: {mes: number, registros: RegistroCaja[]}[]}>([]);
+  const [historialFiltrado, setHistorialFiltrado] = useState<{ano: number, meses: {mes: number, registros: RegistroCaja[]}[]}>({
+    ano: new Date().getFullYear(),
+    meses: Array.from({ length: 12 }, (_, i) => ({
+      mes: i + 1,
+      registros: []
+    }))
+  });
   const [chartData, setChartData] = useState<{ingresos: any, egresos: any} | null>(null);
-  const [medicoId, setMedicoId] = useState<number | null>(null);
+  const [medicoId, setMedicoId] = useState<string | null>(null);
   const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
  const [medicos, setMedicos] = useState<Medico[]>([]);
 const [isLoadingMedicos, setIsLoadingMedicos] = useState(true);
@@ -1592,11 +1577,40 @@ const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
     return date.toISOString().split('T')[0];
   });
   const [fechaFinHistorial, setFechaFinHistorial] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [chartDataHistorial, setChartDataHistorial] = useState<{
-    ingresosPorCategoria: any;
-    egresosPorCategoria: any;
-    distribucionGeneral: any;
-  } | null>(null);
+  const [chartDataHistorial, setChartDataHistorial] = useState({
+    ingresosPorCategoria: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: []
+      }]
+    },
+    egresosPorCategoria: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: []
+      }]
+    },
+    distribucionGeneral: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: []
+      }]
+    },
+    balanceEvolucion: {
+      labels: [],
+      datasets: [{
+        label: 'Balance',
+        data: [],
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
+    }
+  });
 const [busquedaMedico, setBusquedaMedico] = useState('');
 const [showMedicoDropdown, setShowMedicoDropdown] = useState(false);
  // Función para obtener el ID de la categoría "COMISIÓN TARJETA" o similar
@@ -1852,6 +1866,26 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
   const totalIngresos = Object.values(categoriasIngresos).reduce((a, b) => a + b, 0);
   const totalEgresos = Object.values(categoriasEgresos).reduce((a, b) => a + b, 0);
 
+  // Preparar datos para el gráfico de evolución del balance
+  const registrosOrdenados = [...registros].sort((a, b) => 
+    new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+  );
+
+  let balanceAcumulado = 0;
+  const balanceEvolucion = registrosOrdenados.map(registro => {
+    const valor = registro.tipo_movimiento?.tipo === 'Ingreso' ? 
+      registro.valor : 
+      registro.tipo_movimiento?.tipo === 'Egreso' ? 
+        -registro.valor : 
+        registro.valor;
+    
+    balanceAcumulado += valor;
+    return {
+      fecha: new Date(registro.fecha).toLocaleDateString('es-ES'),
+      balance: balanceAcumulado
+    };
+  });
+
   return {
     ingresosPorCategoria: {
       labels: Object.keys(categoriasIngresos),
@@ -1883,79 +1917,141 @@ const prepararDatosGrafico = (registros: RegistroCaja[]) => {
         borderColor: ['#388E3C', '#D32F2F'],
         borderWidth: 1
       }]
+    },
+    balanceEvolucion: {
+      labels: balanceEvolucion.map(item => item.fecha),
+      datasets: [{
+        label: 'Balance',
+        data: balanceEvolucion.map(item => item.balance),
+        borderColor: '#4CAF50',
+        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        fill: true,
+        tension: 0.4
+      }]
     }
   };
 };
 
   // Cargar registros y calcular balances
 const cargarRegistros = async (fechaSeleccionada: string) => {
-  setIsLoading(true);
-
   try {
-    // 1. Primero verifica que userId y fechaSeleccionada tengan valor
-    if (!userId || !fechaSeleccionada) {
-      throw new Error('Falta userId o fecha');
-    }
-
-    // 2. Consulta mejorada con todas las relaciones necesarias
-    const { data, error } = await supabase
+    const { data: registrosData, error: registrosError } = await supabase
       .from('registros_caja')
       .select(`
-        id,
-        fecha,
-        tipo_movimiento_id,
-        descripcion,
-        valor,
-        numero_factura,
-        user_id,
-        created_at,
-        medico_id,
-        forma_pago,
-        paciente_id,
-        tipos_movimiento (id, nombre, tipo),
-        users:user_id(nombre),
-        medico:medico_id(id, nombre),
-        paciente:paciente_id(id, nombres, apellido_paterno)
+        *,
+        tipo_movimiento:tipos_movimiento(*),
+        usuario:users(nombre),
+        medico:medicos(*),
+        paciente:pacientes(*)
       `)
       .eq('user_id', userId)
-      .eq('fecha', fechaSeleccionada)
-      .order('created_at', { ascending: true });
+      .order('fecha', { ascending: false });
 
-    if (error) {
-      console.error('Error de Supabase:', error);
-      throw error;
-    }
+    if (registrosError) throw registrosError;
 
-    console.log('Datos recibidos con relaciones:', data); // Para depuración
-
-    // 3. Procesar los datos para incluir las relaciones
-    const registros = (data || []).map((registro) => ({
-      ...registro,
-      tipo_movimiento: registro.tipos_movimiento,
-      usuario: registro.users,
-      medico: registro.medico,
+    const registrosProcesados: RegistroCaja[] = registrosData.map((registro: any) => ({
+      id: Number(registro.id),
+      fecha: String(registro.fecha),
+      tipo_movimiento_id: Number(registro.tipo_movimiento_id),
+      tipo_movimiento: registro.tipo_movimiento ? {
+        id: Number(registro.tipo_movimiento.id),
+        nombre: String(registro.tipo_movimiento.nombre),
+        tipo: registro.tipo_movimiento.tipo as 'Ingreso' | 'Egreso' | 'Ajuste'
+      } : undefined,
+      descripcion: String(registro.descripcion),
+      valor: Number(registro.valor),
+      numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
+      user_id: Number(registro.user_id),
+      created_at: String(registro.created_at),
+      usuario: registro.usuario ? {
+        nombre: String(registro.usuario.nombre)
+      } : undefined,
       paciente: registro.paciente ? {
-        id: registro.paciente.id,
-        nombreCompleto: `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}`
-      } : null
+        id: Number(registro.paciente.id),
+        nombres: String(registro.paciente.nombres),
+        apellido_paterno: String(registro.paciente.apellido_paterno),
+        apellido_materno: String(registro.paciente.apellido_materno),
+        activo: Boolean(registro.paciente.activo),
+        fecha_nacimiento: registro.paciente.fecha_nacimiento ? String(registro.paciente.fecha_nacimiento) : undefined,
+        dni: registro.paciente.dni ? String(registro.paciente.dni) : undefined,
+        celular: registro.paciente.celular ? String(registro.paciente.celular) : undefined,
+        sexo: registro.paciente.sexo as 'M' | 'F' | 'O' | undefined,
+        telefono_fijo: registro.paciente.telefono_fijo ? String(registro.paciente.telefono_fijo) : undefined,
+        correo: registro.paciente.correo ? String(registro.paciente.correo) : undefined,
+        direccion: registro.paciente.direccion ? String(registro.paciente.direccion) : undefined,
+        distrito: registro.paciente.distrito ? String(registro.paciente.distrito) : undefined,
+        grupo_sanguineo: registro.paciente.grupo_sanguineo ? String(registro.paciente.grupo_sanguineo) : undefined,
+        alergias: registro.paciente.alergias ? String(registro.paciente.alergias) : undefined,
+        enfermedades_cronicas: registro.paciente.enfermedades_cronicas ? String(registro.paciente.enfermedades_cronicas) : undefined,
+        medicamentos_actuales: registro.paciente.medicamentos_actuales ? String(registro.paciente.medicamentos_actuales) : undefined,
+        seguro_medico: registro.paciente.seguro_medico ? String(registro.paciente.seguro_medico) : undefined,
+        estado_civil: registro.paciente.estado_civil ? String(registro.paciente.estado_civil) : undefined,
+        ocupacion: registro.paciente.ocupacion ? String(registro.paciente.ocupacion) : undefined,
+        referencia: registro.paciente.referencia ? String(registro.paciente.referencia) : undefined,
+        historial_dental: registro.paciente.historial_dental ? String(registro.paciente.historial_dental) : undefined,
+        fecha_registro: registro.paciente.fecha_registro ? String(registro.paciente.fecha_registro) : undefined,
+        ultima_visita: registro.paciente.ultima_visita ? String(registro.paciente.ultima_visita) : undefined
+      } : undefined,
+      medico: registro.medico ? {
+        id: Number(registro.medico.id),
+        nombre: String(registro.medico.nombre),
+        activo: Boolean(registro.medico.activo),
+        fecha_ingreso: registro.medico.fecha_ingreso ? String(registro.medico.fecha_ingreso) : undefined,
+        especialidad: registro.medico.especialidad ? String(registro.medico.especialidad) : undefined
+      } : undefined,
+      forma_pago: registro.forma_pago as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS' | undefined
     }));
 
-    // 4. Actualizar los estados
-    setRegistros(registros);
-    
-    if (registros.length > 0) {
-      setChartData(prepararDatosGrafico(registros));
-      setTotalDia(registros.reduce((total, reg) => total + reg.valor, 0));
-    } else {
-      setChartData(null);
-      setTotalDia(0);
-    }
+    // Filtrar registros del día seleccionado
+    const registrosDelDia = registrosProcesados.filter(registro => {
+      const fechaRegistro = new Date(registro.fecha).toISOString().split('T')[0];
+      return fechaRegistro === fechaSeleccionada;
+    });
 
-  } catch (error) {
-    console.error('Error completo al cargar registros:', error);
-    toast.error(`Error al cargar registros: ${error.message}`);
-  } finally {
-    setIsLoading(false);
+    // Calcular balance del día
+    const balanceDia = registrosDelDia.reduce((sum, registro) => {
+      const tipo = registro.tipo_movimiento?.tipo;
+      if (tipo === 'Ingreso') {
+        return sum + registro.valor;
+      } else if (tipo === 'Egreso') {
+        return sum - Math.abs(registro.valor);
+      } else { // Ajuste
+        return sum + registro.valor;
+      }
+    }, 0);
+
+    // Calcular balance del mes
+    const fechaSeleccionadaObj = new Date(fechaSeleccionada);
+    const primerDiaMes = new Date(fechaSeleccionadaObj.getFullYear(), fechaSeleccionadaObj.getMonth(), 1);
+    const ultimoDiaMes = new Date(fechaSeleccionadaObj.getFullYear(), fechaSeleccionadaObj.getMonth() + 1, 0);
+
+    const registrosDelMes = registrosProcesados.filter(registro => {
+      const fechaRegistro = new Date(registro.fecha);
+      return fechaRegistro >= primerDiaMes && fechaRegistro <= ultimoDiaMes;
+    });
+
+    const balanceMes = registrosDelMes.reduce((sum, registro) => {
+      const tipo = registro.tipo_movimiento?.tipo;
+      if (tipo === 'Ingreso') {
+        return sum + registro.valor;
+      } else if (tipo === 'Egreso') {
+        return sum - Math.abs(registro.valor);
+      } else { // Ajuste
+        return sum + registro.valor;
+      }
+    }, 0);
+
+    setRegistros(registrosDelDia);
+    setTotalDia(balanceDia);
+    setBalanceMes(balanceMes);
+
+  } catch (err) {
+    console.error('Error completo al cargar registros:', err);
+    if (err instanceof Error) {
+      toast.error(`Error al cargar registros: ${err.message}`);
+    } else {
+      toast.error('Error al cargar registros');
+    }
   }
 };
 
@@ -1964,86 +2060,112 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
 const cargarHistorial = async () => {
   try {
     setIsLoading(true);
-    
-    // Consulta con todas las relaciones necesarias
-    const { data: registrosData, error: registrosError } = await supabase
+    const { data, error } = await supabase
       .from('registros_caja')
       .select(`
-        id,
-        fecha,
-        tipo_movimiento_id,
-        descripcion,
-        valor,
-        numero_factura,
-        created_at,
-        medico_id,
-        forma_pago,
-        moneda,
-        paciente_id,
-        tipos_movimiento (id, nombre, tipo),
-        users:user_id(nombre),
-        medico:medico_id(id, nombre),
-        paciente:paciente_id(id, nombres, apellido_paterno)
+        *,
+        tipo_movimiento:tipos_movimiento(*),
+        usuario:users(nombre),
+        medico:medicos(*),
+        paciente:pacientes(*)
       `)
       .eq('user_id', userId)
       .gte('fecha', fechaInicioHistorial)
       .lte('fecha', fechaFinHistorial)
       .order('fecha', { ascending: false });
 
-    if (registrosError) throw registrosError;
+    if (error) throw error;
 
-    // Procesar los registros
-    const registrosProcesados = (registrosData || []).map(registro => ({
-      ...registro,
-      tipo_movimiento: registro.tipos_movimiento,
-      usuario: registro.users,
-      medico: registro.medico,
+    const registrosProcesados: RegistroCaja[] = data.map((registro: any) => ({
+      id: Number(registro.id),
+      fecha: String(registro.fecha),
+      tipo_movimiento_id: Number(registro.tipo_movimiento_id),
+      tipo_movimiento: registro.tipo_movimiento ? {
+        id: Number(registro.tipo_movimiento.id),
+        nombre: String(registro.tipo_movimiento.nombre),
+        tipo: registro.tipo_movimiento.tipo as 'Ingreso' | 'Egreso' | 'Ajuste'
+      } : undefined,
+      descripcion: String(registro.descripcion),
+      valor: Number(registro.valor),
+      numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
+      user_id: Number(registro.user_id),
+      created_at: String(registro.created_at),
+      usuario: registro.usuario ? {
+        nombre: String(registro.usuario.nombre)
+      } : undefined,
       paciente: registro.paciente ? {
-        id: registro.paciente.id,
-        nombreCompleto: `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}`
-      } : null,
-      moneda: registro.moneda || 'SOLES'
+        id: Number(registro.paciente.id),
+        nombres: String(registro.paciente.nombres),
+        apellido_paterno: String(registro.paciente.apellido_paterno),
+        apellido_materno: String(registro.paciente.apellido_materno),
+        activo: Boolean(registro.paciente.activo)
+      } : undefined,
+      medico: registro.medico ? {
+        id: Number(registro.medico.id),
+        nombre: String(registro.medico.nombre),
+        activo: Boolean(registro.medico.activo)
+      } : undefined,
+      forma_pago: registro.forma_pago as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS' | undefined
     }));
 
-    // Organizar por año y mes
-    const historialPorAno: Record<number, Record<number, any[]>> = {};
-    registrosProcesados.forEach(registro => {
-      const fecha = new Date(registro.fecha);
-      const ano = fecha.getFullYear();
-      const mes = fecha.getMonth() + 1;
-      
-      if (!historialPorAno[ano]) historialPorAno[ano] = {};
-      if (!historialPorAno[ano][mes]) historialPorAno[ano][mes] = [];
-      
-      historialPorAno[ano][mes].push(registro);
-    });
+    // Organizar registros por año y mes
+    const historialFormateado: HistorialAno = {
+      ano: new Date().getFullYear(),
+      meses: Array.from({ length: 12 }, (_, i) => {
+        const registrosDelMes = registrosProcesados.filter((reg: RegistroCaja) => {
+          const fecha = new Date(reg.fecha);
+          return fecha.getFullYear() === new Date().getFullYear() && 
+                 fecha.getMonth() === i;
+        });
 
-    // Formatear para el estado
-    const historialFormateado = Object.entries(historialPorAno).map(([anoStr, meses]) => ({
-      ano: parseInt(anoStr),
-      meses: Object.entries(meses).map(([mesStr, registros]) => ({
-        mes: parseInt(mesStr),
-        registros
-      }))
-    }));
+        // Calcular balance del mes
+        const balanceMes = registrosDelMes.reduce((sum, reg) => {
+          const tipo = reg.tipo_movimiento?.tipo;
+          if (tipo === 'Ingreso') {
+            return sum + reg.valor;
+          } else if (tipo === 'Egreso') {
+            return sum - Math.abs(reg.valor);
+          } else { // Ajuste
+            return sum + reg.valor;
+          }
+        }, 0);
+
+        return {
+          mes: i + 1,
+          registros: registrosDelMes,
+          balanceMes
+        };
+      })
+    };
+
+    setHistorialFiltrado(historialFormateado);
 
     // Calcular balance total
     const balance = registrosProcesados.reduce((sum, reg) => {
       const tipo = reg.tipo_movimiento?.tipo;
-      return tipo === 'Ingreso' ? sum + reg.valor : sum - Math.abs(reg.valor);
+      if (tipo === 'Ingreso') {
+        return sum + reg.valor;
+      } else if (tipo === 'Egreso') {
+        return sum - Math.abs(reg.valor);
+      } else { // Ajuste
+        return sum + reg.valor;
+      }
     }, 0);
 
     // Preparar datos para los gráficos
     const chartData = prepararDatosGrafico(registrosProcesados);
 
     // Actualizar estados
-    setHistorialFiltrado(historialFormateado);
     setBalanceMes(balance);
     setChartDataHistorial(chartData);
 
   } catch (error) {
     console.error('Error cargando historial:', error);
-    toast.error(`Error al cargar historial: ${error.message}`);
+    if (error instanceof Error) {
+      toast.error(`Error al cargar historial: ${error.message}`);
+    } else {
+      toast.error('Error al cargar historial');
+    }
   } finally {
     setIsLoading(false);
   }
@@ -2082,24 +2204,165 @@ const FiltrosHistorial = () => (
 );
 
 // En tu JSX, muestra los gráficos del historial así:
-{chartDataHistorial && (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center">Ingresos Históricos</h3>
-      <div className="h-64">
-        <Pie data={chartDataHistorial.ingresosPorCategoria} />
+{historialVisible && (
+  <div className="mt-6 space-y-6">
+    {/* Filtros de fecha */}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+      <div>
+        <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
+        <input
+          type="date"
+          value={fechaInicioHistorial}
+          onChange={(e) => setFechaInicioHistorial(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
+        <input
+          type="date"
+          value={fechaFinHistorial}
+          onChange={(e) => setFechaFinHistorial(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        />
+      </div>
+      <div className="flex items-end">
+        <button
+          onClick={cargarHistorial}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Aplicar Filtros
+        </button>
       </div>
     </div>
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center">Egresos Históricos</h3>
-      <div className="h-64">
-        <Pie data={chartDataHistorial.egresosPorCategoria} />
+
+    {/* Gráficos */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-sm font-semibold mb-2 text-center">Evolución del Balance</h3>
+        <div className="h-64">
+          <Line data={chartDataHistorial.balanceEvolucion} />
+        </div>
+      </div>
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-sm font-semibold mb-2 text-center">Distribución General</h3>
+        <div className="flex items-center justify-center">
+          <div className="w-1/2 h-64">
+            <Pie data={chartDataHistorial.distribucionGeneral} />
+          </div>
+          <div className="w-1/2 pl-4">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm">Ingresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[0] || 0)}</span>
+              </div>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span className="text-sm">Egresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[1] || 0)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
-      <div className="h-64">
-        <Pie data={chartDataHistorial.distribucionGeneral} />
+
+    {/* Tabla de historial */}
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {[
+                'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
+                'Forma Pago', 'Moneda', 'Valor', 'Factura'
+              ].map((col) => (
+                <th
+                  key={col}
+                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                  style={{ color: colorPrimaryDark }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {historialFiltrado?.meses?.map((mesData: HistorialMes) => {
+              if (mesData.registros.length === 0) return null;
+              
+              const nombreMes = new Date(historialFiltrado.ano, mesData.mes - 1, 1)
+                .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+              
+              return (
+                <React.Fragment key={`${historialFiltrado.ano}-${mesData.mes}`}>
+                  <tr className="bg-gray-50">
+                    <td colSpan={9} className="px-3 py-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-900">{nombreMes}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">Balance del mes:</span>
+                          <span className={`text-sm font-medium ${mesData.balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatMoneda(mesData.balanceMes)}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {mesData.registros.map((registro) => {
+                    const tipo = registro.tipo_movimiento?.tipo;
+                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
+                    const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
+                    
+                    return (
+                      <tr key={registro.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {fechaISO}
+                          <br />
+                          <span className="text-xs">{hora}</span>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            tipo === 'Ingreso' 
+                              ? 'bg-green-100 text-green-800' 
+                              : tipo === 'Egreso' 
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {tipo || 'DESC'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                          {registro.descripcion && (
+                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.paciente?.nombreCompleto || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.medico?.nombre || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.forma_pago || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.moneda || 'SOLES'}
+                        </td>
+                        <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
+                          {valorDisplay}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.numero_factura || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -2248,25 +2511,40 @@ const agregarRegistro = async () => {
   };
 
   // Eliminar registro
-  const eliminarRegistro = async (id: string) => {
+  const eliminarRegistro = async (id: number) => {
+    console.log('Attempting to delete record with ID:', id, 'Type:', typeof id);
+    
+    if (!id || isNaN(id) || id <= 0) {
+      console.error('Invalid ID:', id);
+      toast.error('ID de registro inválido');
+      return;
+    }
+
     if (!window.confirm('¿Estás seguro de eliminar este registro?')) return;
 
     try {
+      console.log('Sending delete request for ID:', id);
       const { error } = await supabase
         .from('registros_caja')
         .delete()
-        .eq('id', id)
-        .select();
+        .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       toast.success('Registro eliminado correctamente');
       cargarRegistros(fecha);
+      if (historialVisible) {
+        cargarHistorial();
+      }
     } catch (error: any) {
       console.error('Error eliminando registro:', {
         message: error.message,
         code: error.code,
         details: error.details,
+        id: id
       });
       toast.error('Error al eliminar registro');
     }
@@ -2731,79 +3009,88 @@ const filteredPacientes = query === ''
             </div>
 
             {/* Gráficos */}
-            {chartDataHistorial && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-semibold mb-2 text-center">Ingresos por Categoría</h3>
-                  <div className="h-48 md:h-64">
-                    <Pie data={chartDataHistorial.ingresosPorCategoria} />
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-sm font-semibold mb-2 text-center">Evolución del Balance</h3>
+                <div className="h-64">
+                  <Line data={chartDataHistorial.balanceEvolucion} />
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-semibold mb-2 text-center">Egresos por Categoría</h3>
-                  <div className="h-48 md:h-64">
-                    <Pie data={chartDataHistorial.egresosPorCategoria} />
-                  </div>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow">
-                  <h3 className="text-sm font-semibold mb-2 text-center">Balance General</h3>
-                  <div className="h-48 md:h-64">
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h3 className="text-sm font-semibold mb-2 text-center">Distribución General</h3>
+                <div className="flex items-center justify-center">
+                  <div className="w-1/2 h-64">
                     <Pie data={chartDataHistorial.distribucionGeneral} />
+                  </div>
+                  <div className="w-1/2 pl-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                        <span className="text-sm">Ingresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[0] || 0)}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                        <span className="text-sm">Egresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[1] || 0)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Tabla de historial */}
-            <div className="overflow-x-auto rounded-lg border" style={{ borderColor: colorPrimaryLight }}>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {[
-                      'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
-                      'Forma Pago', 'Moneda', 'Valor', 'Factura'
-                    ].map((col) => (
-                      <th
-                        key={col}
-                        className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                        style={{ color: colorPrimaryDark }}
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {historialFiltrado.map((anoData) => (
-                    anoData.meses.map((mesData) => {
-                      const nombreMes = new Date(anoData.ano, mesData.mes - 1, 1)
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {[
+                        'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
+                        'Forma Pago', 'Moneda', 'Valor', 'Factura'
+                      ].map((col) => (
+                        <th
+                          key={col}
+                          className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                          style={{ color: colorPrimaryDark }}
+                        >
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {historialFiltrado?.meses?.map((mesData: HistorialMes) => {
+                      if (mesData.registros.length === 0) return null;
+                      
+                      const nombreMes = new Date(historialFiltrado.ano, mesData.mes - 1, 1)
                         .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
                       
                       return (
-                        <React.Fragment key={`${anoData.ano}-${mesData.mes}`}>
+                        <React.Fragment key={`${historialFiltrado.ano}-${mesData.mes}`}>
                           <tr className="bg-gray-50">
                             <td colSpan={9} className="px-3 py-2">
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
-                                <span className="font-medium capitalize" style={{ color: colorPrimaryDark }}>
-                                  {nombreMes}
-                                </span>
-                                <span className={`text-sm font-medium ${
-                                  balanceMes >= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                  Balance: {formatMoneda(balanceMes)}
-                                </span>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-900">{nombreMes}</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm text-gray-600">Balance del mes:</span>
+                                  <span className={`text-sm font-medium ${mesData.balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {formatMoneda(mesData.balanceMes)}
+                                  </span>
+                                </div>
                               </div>
                             </td>
                           </tr>
                           {mesData.registros.map((registro) => {
                             const tipo = registro.tipo_movimiento?.tipo;
                             const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                            const { fecha: fechaISO } = formatDateTime(registro.fecha);
+                            const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
                             
                             return (
                               <tr key={registro.id} className="hover:bg-gray-50">
                                 <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                                   {fechaISO}
+                                  <br />
+                                  <span className="text-xs">{hora}</span>
                                 </td>
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${
@@ -2818,6 +3105,9 @@ const filteredPacientes = query === ''
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                                  {registro.descripcion && (
+                                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                                  )}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.paciente?.nombreCompleto || '-'}
@@ -2829,7 +3119,7 @@ const filteredPacientes = query === ''
                                   {registro.forma_pago || '-'}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
-                                  {tipoMoneda}
+                                  {registro.moneda || 'SOLES'}
                                 </td>
                                 <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
                                   {valorDisplay}
@@ -2842,10 +3132,10 @@ const filteredPacientes = query === ''
                           })}
                         </React.Fragment>
                       );
-                    })
-                  ))}
-                </tbody>
-              </table>
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -2856,22 +3146,22 @@ const filteredPacientes = query === ''
 
 
 function PaginaPrincipal() {
+  // Move all useState hooks to the top
+  const [showLogin, setShowLogin] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('caja');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
   const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [userLastName, setUserLastName] = useState('');
+  const [adminStats, setAdminStats] = useState<any>(null);
 
- 
-  const [estaProcesando, setEstaProcesando] = useState<boolean>(false);
-
-  const [ubicacionActual, setUbicacionActual] = useState<Ubicacion | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [activeTab, setActiveTab] = useState('registro');
-  const [userActiveTab, setUserActiveTab] = useState('caja');
-  const [userData, setUserData] = useState(null);
-
-
+  // Update current time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -2879,29 +3169,12 @@ function PaginaPrincipal() {
     return () => clearInterval(timer);
   }, []);
 
- 
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUbicacionActual(position.coords);
-        },
-        () => {
-        //  toast.error('No se pudo obtener tu ubicación');
-        }
-      );
-    }
-  }, []);
 
-  
-  
-  useEffect(() => {    
-    
+  // Get user session
+  useEffect(() => {
     const getSession = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession({
-          forceRefresh: true
-        });
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError || !session?.user) {
           throw sessionError || new Error('No hay sesión activa');
@@ -2909,339 +3182,203 @@ function PaginaPrincipal() {
 
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, email, nombre, apellido,  activo')
+          .select('*')
           .eq('id', session.user.id)
           .single();
 
-        if (userError || !userData) {
-          throw userError || new Error('Error al obtener datos del usuario');
-        }
-
-        if (!userData.activo) {
-          await supabase.auth.signOut();
-          window.location.reload();
-          return;
-        }
+        if (userError) throw userError;
 
         setUserId(session.user.id);
         setUserEmail(userData.email);
         setUserName(userData.nombre || '');
         setUserLastName(userData.apellido || '');
-        setUserData(userData); 
+        setUserData(userData);
         
-       
+        // Check if user is admin
+        const isUserAdmin = userData.role === 'admin';
+        setIsAdmin(isUserAdmin);
+        
       } catch (error) {
         console.error('Error obteniendo sesión:', error);
-        toast.error(error.message);
+        if (error instanceof Error) {
+          toast.error(error.message);
+        }
+      } finally {
+        setIsLoading(false);
       }
     };
+
     getSession();
   }, []);
 
- 
-
-
- // ADMIN CONTENT
-    const renderAdminContent = () => {
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const checkAdminStatus = async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            setIsAdmin(false);
-            return;
-          }
-
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-
-          if (error) throw error;
-          setIsAdmin(userData?.role === 'admin');
-        } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      checkAdminStatus();
-    }, []);
-
-    if (loading) {
-      return (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      );
-    }
-
+  // Render admin content
+  const renderAdminContent = () => {
+    // Move useState hooks outside of render functions
     return (
-      <div className="flex">
-        {/* Barra lateral - Solo visible para admin */}
-        {isAdmin && (
-          <div className="w-64 p-4" style={{ 
-            backgroundColor: colors.primary[50],
-            borderRight: `1px solid ${colors.primary[100]}`
-          }}>
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'registro'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('registro')}
-              
-              style={{
-                backgroundColor: activeTab === 'registro' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'registro' ? 'white' : colors.primary[600]
-              }}
-            >
-              <Table2Icon className="w-4 h-4 mr-2" />
-              General
-            </button>
-            
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'medicos'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('medicos')}
-              style={{
-                backgroundColor: activeTab === 'medicos' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'medicos' ? 'white' : colors.primary[600]
-              }}
-            >
-              <PersonStandingIcon className="w-4 h-4 mr-2" />
-              Médicos
-            </button>
-
-            {/* Botão para Pacientes */}
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'pacientes'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('pacientes')}
-              style={{
-                backgroundColor: activeTab === 'pacientes' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'pacientes' ? 'white' : colors.primary[600]
-              }}
-            >
-              <User className="w-4 h-4 mr-2" />
-              Pacientes
-            </button>
-            {/* Botão para Dashboard */}
-
-            <button
-              className={`px-4 py-3 font-medium text-sm flex items-center w-full mb-3 rounded-lg transition-colors ${
-                activeTab === 'dashboard'
-                  ? `text-white bg-${colors.primary[600]} shadow-md`
-                  : `text-${colors.primary[600]} hover:bg-${colors.primary[100]}`
-              }`}
-              onClick={() => setActiveTab('dashboard')}
-              style={{
-                backgroundColor: activeTab === 'dashboard' ? colors.primary[600] : 'transparent',
-                color: activeTab === 'dashboard' ? 'white' : colors.primary[600]
-              }}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Dashboard
-            </button>
-          </div>
-        )}
-    
-        {/* Contenido principal */}
-        <div className={`${isAdmin ? 'flex-1' : 'w-full'} p-6`}>
-          <div className="transition-all duration-200">
-            {(!isAdmin || activeTab === 'registro') && renderNormalUserContent()}
-            
-            {isAdmin && activeTab === 'medicos' && (
-              <div className="animate-fadeIn">
-                <GestionDoctores />
-              </div>
-            )}
-
-            {/* Novo conteúdo para Pacientes */}
-            {isAdmin && activeTab === 'pacientes' && (
-              <div className="animate-fadeIn">
-                <GestionPaciente/>
-              </div>
-            )}
-    
-            {isAdmin && activeTab === 'dashboard' && (
-              <div className="animate-fadeIn">
-                <div className="bg-white rounded-lg shadow-lg p-4" style={{ 
-                  border: `1px solid ${colors.primary[100]}`,
-                  boxShadow: `0 4px 6px ${colors.primary[50]}`
-                }}>
-                  <iframe 
-                    title="Dashboard Power BI"
-                    width="100%" 
-                    height="700"
-                    src="" 
-                    frameBorder="0"
-                    allowFullScreen
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+      <div>
+        {/* Admin content */}
       </div>
     );
   };
-  
- // USER CONTENT
-    const renderNormalUserContent = () => {
+
+  // Render normal user content
+  const renderNormalUserContent = () => {
+    return (
+      <div>
+        {/* Normal user content */}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Pestañas de navegación */}
-      <div className="flex border-b" style={{ borderColor: colors.primary[100] }}>
-        {/* Pestaña Mi Caja */}
-        <button
-          className={`px-4 py-3 font-medium text-sm flex items-center transition-colors ${
-            userActiveTab === 'caja'
-              ? `text-white bg-[${colors.primary[900]}]`
-              : `text-[${colors.primary[600]}] hover:bg-[${colors.primary[50]}]`
-          }`}
-          onClick={() => setUserActiveTab('caja')}
-          style={{
-            backgroundColor: userActiveTab === 'caja' ? colors.primary[900] : 'transparent',
-            color: userActiveTab === 'caja' ? 'white' : colors.primary[600],
-            borderBottom: userActiveTab === 'caja' ? `2px solid ${colors.primary[900]}` : 'none',
-            marginBottom: '-1px'
-          }}
-          aria-current={userActiveTab === 'caja' ? 'page' : undefined}
-        >
-          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Mi Caja
-        </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Navigation */}
+      <div className="lg:hidden">
+        <div className="bg-white shadow-md px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <MolarIcon className="w-8 h-8" stroke={colorPrimary} />
+            <span className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>
+              Andrew's Dental
+            </span>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-md hover:bg-gray-100"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isMobileMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+        
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="bg-white shadow-lg">
+            <nav className="px-2 pt-2 pb-3 space-y-1">
+              <button
+                onClick={() => {
+                  setActiveTab('caja');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                  activeTab === 'caja' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Caja
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('pacientes');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                  activeTab === 'pacientes' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Pacientes
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('doctores');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                  activeTab === 'doctores' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Doctores
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setActiveTab('admin');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
+                    activeTab === 'admin' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Dashboard
+                </button>
+              )}
+            </nav>
+          </div>
+        )}
       </div>
 
-      {/* Contenido de la pestaña activa */}
-      {userActiveTab === 'caja' && (
-        <div 
-          className="rounded-xl shadow-sm p-6 bg-white"
-          style={{ 
-            border: `1px solid ${colors.primary[100]}`
-          }}
-        >
-          <MiCaja userId={userId} />
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-  return (
-    <div className="min-h-screen" style={{
-      background: `linear-gradient(135deg, ${colors.primary[900]} 0%, ${colors.primary[700]} 50%, ${colors.primary[500]} 100%)`,
-      backgroundAttachment: 'fixed'
-    }}>
-      <Toaster position="top-right" />
-      
-      {/* Barra superior con efecto vidrio */}
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
-      }}>
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <div className="flex items-center space-x-3">
-              <MolarIcon className="w-8 h-8" style={{ color: colors.primary[500] }} />
-              <div>
-                <h1 className="text-xl font-bold" style={{ color: colors.primary[800] }}>
-                  Andrew's Dental Group
-                </h1>
-                <p className="text-sm" style={{ color: colors.neutral[600] }}>
-                  Sistema de Gestión Odontológica
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-              <div className="flex items-center space-x-2" style={{ color: colors.primary[700] }}>
-                <User className="w-5 h-5" />
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm sm:text-base">
-                    {userName || userLastName ? 
-                      `Hola, ${userName} ${userLastName}` : 
-                      `Bienvenido!, ${userEmail}`}
-                  </span>
-                  <span className="text-xs truncate max-w-[180px] sm:max-w-none" style={{ color: colors.neutral[600] }}>
-                    {userEmail}
+      {/* Desktop Navigation */}
+      <div className="hidden lg:block">
+        <div className="bg-white shadow-md">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16">
+              <div className="flex">
+                <div className="flex-shrink-0 flex items-center">
+                  <MolarIcon className="w-8 h-8" stroke={colorPrimary} />
+                  <span className="ml-2 text-lg font-semibold" style={{ color: colorPrimaryDark }}>
+                    Andrew's Dental Group
                   </span>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-2" style={{ color: colors.primary[700] }}>
-                <Clock className="w-5 h-5" />
-                <span className="text-sm sm:text-base">{currentTime.toLocaleTimeString('es-ES')}</span>
+              <div className="flex items-center">
+                <nav className="flex space-x-4">
+                  <button
+                    onClick={() => setActiveTab('caja')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      activeTab === 'caja' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Caja
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('pacientes')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      activeTab === 'pacientes' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Pacientes
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('doctores')}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      activeTab === 'doctores' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    Doctores
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setActiveTab('admin')}
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        activeTab === 'admin' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Dashboard
+                    </button>
+                  )}
+                </nav>
               </div>
-              
-              {ubicacionActual && (
-                <div className="hidden sm:flex items-center space-x-2" style={{ color: colors.primary[700] }}>
-                  <MapPin className="w-5 h-5" />
-                  <span className="text-xs">
-                    Lat: {ubicacionActual.latitude.toFixed(6)}, Long: {ubicacionActual.longitude.toFixed(6)}
-                  </span>
-                </div>
-              )}
-              
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  localStorage.removeItem('sb-auth-token');
-                  sessionStorage.removeItem('sb-auth-token');
-                }}
-                className="flex items-center space-x-1 text-sm sm:text-base rounded-full px-3 py-1 transition-colors hover:bg-opacity-90"
-                style={{
-                  color: colors.primary[600],
-                  backgroundColor: colors.primary[50],
-                  border: `1px solid ${colors.primary[100]}`,
-                }}
-                title="Cerrar sesión"
-              >
-                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span>Cerrar sesión</span> 
-              </button>
             </div>
           </div>
         </div>
       </div>
-  
-      {/* Contenido principal con tarjeta semitransparente */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.92)',
-          borderRadius: '16px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          padding: '2rem',
-          minHeight: '70vh'
-        }}>
-          {renderAdminContent()}
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 sm:p-6">
+            {activeTab === 'caja' && userId && <MiCaja userId={userId} />}
+            {activeTab === 'pacientes' && <GestionPaciente />}
+            {activeTab === 'doctores' && <GestionDoctores />}
+            {activeTab === 'admin' && isAdmin && renderAdminContent()}
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
-  
 }
 
 
