@@ -1940,7 +1940,6 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
         medico:medicos(*),
         paciente:pacientes(*)
       `)
-      .eq('user_id', userId)
       .order('fecha', { ascending: false });
 
     if (registrosError) throw registrosError;
@@ -2004,53 +2003,20 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
       return fechaRegistro === fechaSeleccionada;
     });
 
-    // Calcular balance del día
-    const balanceDia = registrosDelDia.reduce((sum, registro) => {
-      const tipo = registro.tipo_movimiento?.tipo;
-      if (tipo === 'Ingreso') {
-        return sum + registro.valor;
-      } else if (tipo === 'Egreso') {
-        return sum - Math.abs(registro.valor);
-      } else { // Ajuste
-        return sum + registro.valor;
-      }
-    }, 0);
-
-    // Calcular balance del mes
-    const fechaSeleccionadaObj = new Date(fechaSeleccionada);
-    const primerDiaMes = new Date(fechaSeleccionadaObj.getFullYear(), fechaSeleccionadaObj.getMonth(), 1);
-    const ultimoDiaMes = new Date(fechaSeleccionadaObj.getFullYear(), fechaSeleccionadaObj.getMonth() + 1, 0);
-
-    const registrosDelMes = registrosProcesados.filter(registro => {
-      const fechaRegistro = new Date(registro.fecha);
-      return fechaRegistro >= primerDiaMes && fechaRegistro <= ultimoDiaMes;
-    });
-
-    const balanceMes = registrosDelMes.reduce((sum, registro) => {
-      const tipo = registro.tipo_movimiento?.tipo;
-      if (tipo === 'Ingreso') {
-        return sum + registro.valor;
-      } else if (tipo === 'Egreso') {
-        return sum - Math.abs(registro.valor);
-      } else { // Ajuste
-        return sum + registro.valor;
-      }
-    }, 0);
-
     setRegistros(registrosDelDia);
-    setTotalDia(balanceDia);
-    setBalanceMes(balanceMes);
-
-  } catch (err) {
-    console.error('Error completo al cargar registros:', err);
-    if (err instanceof Error) {
-      toast.error(`Error al cargar registros: ${err.message}`);
-    } else {
-      toast.error('Error al cargar registros');
-    }
+    calcularTotales(registrosDelDia);
+  } catch (error: any) {
+    console.error('Error cargando registros:', error);
+    toast.error('Error al cargar registros');
   }
 };
 
+  const calcularTotales = (registros: RegistroCaja[]) => {
+    const totalDia = registros.reduce((total, registro) => total + registro.valor, 0);
+    setTotalDia(totalDia);
+    const balanceMes = registros.reduce((total, registro) => total + registro.valor, 0);
+    setBalanceMes(balanceMes);
+  };
 
   // Cargar historial
 const cargarHistorial = async () => {
@@ -2065,9 +2031,6 @@ const cargarHistorial = async () => {
         medico:medicos(*),
         paciente:pacientes(*)
       `)
-      .eq('user_id', userId)
-      .gte('fecha', fechaInicioHistorial)
-      .lte('fecha', fechaFinHistorial)
       .order('fecha', { ascending: false });
 
     if (error) throw error;
