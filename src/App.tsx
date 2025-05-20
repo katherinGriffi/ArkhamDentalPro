@@ -216,7 +216,7 @@ interface TipoMovimiento {
 }
 
 interface Medico {
-  id: number;
+  id: string;
   nombre: string;
   activo: boolean;
   especialidad?: string;
@@ -227,7 +227,7 @@ interface Medico {
 }
 
 interface Paciente {
-  id: number;
+  id: string;
   nombres: string;
   apellido_paterno: string;
   apellido_materno: string;
@@ -254,7 +254,7 @@ interface Paciente {
 }
 
 interface RegistroCaja {
-  id: number;
+  id: string;  // Changed from number to string
   fecha: string;
   tipo_movimiento_id: number;
   tipo_movimiento?: {
@@ -265,7 +265,7 @@ interface RegistroCaja {
   descripcion: string;
   valor: number;
   numero_factura?: string;
-  user_id: number;
+  user_id: string;  // Changed from number to string
   created_at: string;
   usuario?: {
     nombre: string;
@@ -327,23 +327,15 @@ const GestionDoctores: React.FC = () => {
   const fetchMedicos = async () => {
     try {
       setLoading(true);
-      const { data: medicosData, error: medicosError } = await supabase
+      const { data: medicosData, error } = await supabase
         .from('medicos')
-        .select('*')
-        ;
-
-      if (medicosError) throw medicosError;
-
-      const medicosFormateados: Medico[] = medicosData.map((medico: any) => ({
-        id: Number(medico.id),
-        nombre: String(medico.nombre),
-        activo: true,
-        fecha_ingreso: medico.fecha_ingreso ? String(medico.fecha_ingreso) : undefined,
-        especialidad: medico.especialidad ? String(medico.especialidad) : undefined
-      }));
-
-      setMedicos(medicosFormateados);
-    } catch (err: any) {
+        .select('*');
+  
+      if (error) throw error;
+  
+      console.log('Fetched doctors:', medicosData); // Debug log
+      setMedicos(medicosData as Medico[]);
+    } catch (err) {
       toast.error(`Error al cargar médicos: ${err.message}`);
     } finally {
       setLoading(false);
@@ -398,25 +390,28 @@ const GestionDoctores: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!id || isNaN(Number(id))) {
+    if (!id) {
       toast.error('ID de médico inválido');
       return;
     }
-
+  
     if (!confirm('¿Está seguro de eliminar este médico?')) return;
-
+  
     try {
       const { error } = await supabase
         .from('medicos')
         .update({ activo: false })
-        .eq('id', Number(id));
-
+        .eq('id', id);
+  
       if (error) throw error;
-      toast.success('Médico eliminado correctamente');
-      fetchMedicos();
+      
+      // Optimistic update
+      setMedicos(prev => prev.map(m => m.id === id ? {...m, activo: false} : m));
+      
+      toast.success('Médico marcado como inactivo');
     } catch (error) {
       console.error('Error al eliminar médico:', error);
-      toast.error('Error al eliminar médico');
+      toast.error(`Error: ${error.message}`);
     }
   };
 
@@ -447,7 +442,7 @@ const GestionDoctores: React.FC = () => {
             <div className="flex items-center gap-4">
               <h1 className="text-xl md:text-2xl font-bold text-white">Gestión de Médicos</h1>
               <span className="px-3 py-1 text-sm font-medium text-[#801461] bg-white rounded-full">
-                {medicos.length} {medicos.length === 1 ? 'médico' : 'médicos'}
+                {medicos.filter(m => m.activo).length} {medicos.filter(m => m.activo).length === 1 ? 'médico' : 'médicos'}
               </span>
             </div>
             <button
@@ -568,7 +563,7 @@ const GestionDoctores: React.FC = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(medico.id.toString());
+                            handleDelete(medico.id);
                           }}
                           className="text-red-600 hover:text-red-900"
                         >
@@ -1819,6 +1814,7 @@ const cargarMedicos = async () => {
         const { data, error } = await supabase
           .from('medicos')
           .select('id, nombre')
+          .eq('activo', true)
           .order('nombre', { ascending: true });
 
         if (error) throw error;
@@ -1950,7 +1946,7 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
     if (registrosError) throw registrosError;
 
     const registrosProcesados: RegistroCaja[] = registrosData.map((registro: any) => ({
-      id: Number(registro.id),
+      id: String(registro.id),
       fecha: String(registro.fecha),
       tipo_movimiento_id: Number(registro.tipo_movimiento_id),
       tipo_movimiento: registro.tipo_movimiento ? {
@@ -1961,13 +1957,13 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
       descripcion: String(registro.descripcion),
       valor: Number(registro.valor),
       numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
-      user_id: Number(registro.user_id),
+      user_id: String(registro.user_id),
       created_at: String(registro.created_at),
       usuario: registro.usuario ? {
         nombre: String(registro.usuario.nombre)
       } : undefined,
       paciente: registro.paciente ? {
-        id: Number(registro.paciente.id),
+        id: String(registro.paciente.id),
         nombres: String(registro.paciente.nombres),
         apellido_paterno: String(registro.paciente.apellido_paterno),
         apellido_materno: String(registro.paciente.apellido_materno),
@@ -1993,7 +1989,7 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
         ultima_visita: registro.paciente.ultima_visita ? String(registro.paciente.ultima_visita) : undefined
       } : undefined,
       medico: registro.medico ? {
-        id: Number(registro.medico.id),
+        id: String(registro.medico.id),
         nombre: String(registro.medico.nombre),
         activo: Boolean(registro.medico.activo),
         fecha_ingreso: registro.medico.fecha_ingreso ? String(registro.medico.fecha_ingreso) : undefined,
@@ -2077,7 +2073,7 @@ const cargarHistorial = async () => {
     if (error) throw error;
 
     const registrosProcesados: RegistroCaja[] = data.map((registro: any) => ({
-      id: Number(registro.id),
+      id: String(registro.id),
       fecha: String(registro.fecha),
       tipo_movimiento_id: Number(registro.tipo_movimiento_id),
       tipo_movimiento: registro.tipo_movimiento ? {
@@ -2088,20 +2084,20 @@ const cargarHistorial = async () => {
       descripcion: String(registro.descripcion),
       valor: Number(registro.valor),
       numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
-      user_id: Number(registro.user_id),
+      user_id: String(registro.user_id),
       created_at: String(registro.created_at),
       usuario: registro.usuario ? {
         nombre: String(registro.usuario.nombre)
       } : undefined,
       paciente: registro.paciente ? {
-        id: Number(registro.paciente.id),
+        id: String(registro.paciente.id),
         nombres: String(registro.paciente.nombres),
         apellido_paterno: String(registro.paciente.apellido_paterno),
         apellido_materno: String(registro.paciente.apellido_materno),
         activo: Boolean(registro.paciente.activo)
       } : undefined,
       medico: registro.medico ? {
-        id: Number(registro.medico.id),
+        id: String(registro.medico.id),
         nombre: String(registro.medico.nombre),
         activo: Boolean(registro.medico.activo)
       } : undefined,
@@ -2511,12 +2507,13 @@ const agregarRegistro = async () => {
   };
 
   // Eliminar registro
-  const eliminarRegistro = async (id: number) => {
+  const eliminarRegistro = async (id: string) => {
     console.log('Attempting to delete record with ID:', id, 'Type:', typeof id);
     
-    if (!id || isNaN(id) || id <= 0) {
-      console.error('Invalid ID:', id);
-      toast.error('ID de registro inválido');
+    // Validación para UUID (ejemplo: 3afdad59-fb62-4760-953d-26791f179791)
+    if (!id || typeof id !== 'string' || id.length !== 36) {
+      console.error('Invalid ID format:', id);
+      toast.error('ID de registro inválido: Formato incorrecto');
       return;
     }
 
@@ -2546,9 +2543,9 @@ const agregarRegistro = async () => {
         details: error.details,
         id: id
       });
-      toast.error('Error al eliminar registro');
+      toast.error(`Error al eliminar registro: ${error.message}`);
     }
-  };
+};
 
   // Estilos actualizados con la nueva paleta de colores
   const styles = {
