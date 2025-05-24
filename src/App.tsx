@@ -69,18 +69,19 @@ const colors = {
 function IniciarSesion() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
+    setError(null);
+
     try {
-      console.log('🔑 Iniciando proceso de login...');
-      
+      // Clear any existing session data
       await supabase.auth.signOut();
-      console.log('🧹 Sesión anterior limpiada');
+      localStorage.removeItem('supabase.auth.token');
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -88,25 +89,21 @@ function IniciarSesion() {
       });
 
       if (error) {
-        console.error('❌ Error en login:', error);
         throw error;
       }
 
-      console.log('✅ Login exitoso:', data);
-      
-      if (data?.user) {
-        console.log('👤 Usuario autenticado:', data.user);
-        localStorage.setItem('user', JSON.stringify({
-          id: data.user.id,
-          email: data.user.email
-        }));
-        navigate('/caja');
+      if (data.session) {
+        localStorage.setItem('supabase.auth.token', JSON.stringify(data.session));
+        window.location.reload();
+      } else {
+        throw new Error('No session data received');
       }
-    } catch (error) {
-      console.error('❌ Error completo en login:', error);
-      toast.error('Error al iniciar sesión');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Error al iniciar sesión');
+      toast.error(error.message || 'Error al iniciar sesión');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -173,14 +170,14 @@ function IniciarSesion() {
           <div>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white"
               style={{
                 backgroundColor: colorPrimary,
-                opacity: isLoading ? 0.7 : 1
+                opacity: loading ? 0.7 : 1
               }}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -796,54 +793,76 @@ const GestionPaciente: React.FC = () => {
 
   const handleSave = async () => {
     try {
+      setLoading(true);
+      
+      // Prepare the patient data
       const pacienteData = {
-        dni,
-        nombres,
-        apellido_paterno: apellidoPaterno,
-        apellido_materno: apellidoMaterno,
-        fecha_nacimiento: fechaNacimiento,
-        sexo,
-        celular,
-        telefono_fijo: telefonoFijo,
-        correo,
-        direccion,
-        distrito,
-        grupo_sanguineo: grupoSanguineo,
-        alergias,
-        enfermedades_cronicas: enfermedadesCronicas,
-        medicamentos_actuales: medicamentosActuales,
-        seguro_medico: seguroMedico,
-        estado_civil: estadoCivil,
-        ocupacion,
-        referencia,
-        historial_dental: historialDental,
-        activo: true,
-        fecha_registro: new Date().toISOString()
+        nombres: formData.nombres,
+        apellido_paterno: formData.apellido_paterno,
+        apellido_materno: formData.apellido_materno,
+        fecha_nacimiento: formData.fecha_nacimiento,
+        dni: formData.dni,
+        celular: formData.celular,
+        sexo: formData.sexo,
+        telefono_fijo: formData.telefono_fijo,
+        correo: formData.correo,
+        direccion: formData.direccion,
+        distrito: formData.distrito,
+        grupo_sanguineo: formData.grupo_sanguineo,
+        alergias: formData.alergias,
+        enfermedades_cronicas: formData.enfermedades_cronicas,
+        medicamentos_actuales: formData.medicamentos_actuales,
+        seguro_medico: formData.seguro_medico,
+        estado_civil: formData.estado_civil,
+        ocupacion: formData.ocupacion,
+        referencia: formData.referencia,
+        historial_dental: formData.historial_dental,
+        fecha_registro: new Date().toISOString(),
+        activo: true
       };
 
-      if (editingPaciente) {
-        const { error } = await supabase
+      let result;
+      
+      if (selectedPaciente) {
+        // Update existing patient
+        const { data, error } = await supabase
           .from('pacientes')
           .update(pacienteData)
-          .eq('id', editingPaciente.id);
-
+          .eq('id', selectedPaciente.id)
+          .select();
+          
         if (error) throw error;
+        result = data;
         toast.success('Paciente actualizado correctamente');
       } else {
-        const { error } = await supabase
+        // Create new patient
+        const { data, error } = await supabase
           .from('pacientes')
-          .insert([pacienteData]);
-
-        if (error) throw error;
-        toast.success('Paciente registrado correctamente');
+          .insert([pacienteData])
+          .select();
+          
+        if (error) {
+          if (error.code === '23505') { // Unique constraint violation
+            throw new Error('Ya existe un paciente con este DNI');
+          }
+          throw error;
+        }
+        result = data;
+        toast.success('Paciente guardado correctamente');
       }
 
-      setIsModalOpen(false);
-      resetForm();
+      // Refresh the patients list
       fetchPacientes();
+      
+      // Reset form and selection
+      resetForm();
+      setSelectedPaciente(null);
+      
     } catch (error: any) {
       console.error('Error al guardar paciente:', error);
       toast.error(error.message || 'Error al guardar paciente');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2022,7 +2041,7 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
 const cargarHistorial = async () => {
   try {
     setIsLoading(true);
-    const { data, error } = await supabase
+    const { data: registrosData, error: registrosError } = await supabase
       .from('registros_caja')
       .select(`
         *,
@@ -2031,11 +2050,13 @@ const cargarHistorial = async () => {
         medico:medicos(*),
         paciente:pacientes(*)
       `)
+      .gte('fecha', fechaInicioHistorial)
+      .lte('fecha', fechaFinHistorial)
       .order('fecha', { ascending: false });
 
-    if (error) throw error;
+    if (registrosError) throw registrosError;
 
-    const registrosProcesados: RegistroCaja[] = data.map((registro: any) => ({
+    const registrosProcesados: RegistroCaja[] = registrosData.map((registro: any) => ({
       id: String(registro.id),
       fecha: String(registro.fecha),
       tipo_movimiento_id: Number(registro.tipo_movimiento_id),
@@ -2069,11 +2090,11 @@ const cargarHistorial = async () => {
 
     // Organizar registros por año y mes
     const historialFormateado: HistorialAno = {
-      ano: new Date().getFullYear(),
+      ano: new Date(fechaInicioHistorial).getFullYear(),
       meses: Array.from({ length: 12 }, (_, i) => {
         const registrosDelMes = registrosProcesados.filter((reg: RegistroCaja) => {
           const fecha = new Date(reg.fecha);
-          return fecha.getFullYear() === new Date().getFullYear() && 
+          return fecha.getFullYear() === new Date(fechaInicioHistorial).getFullYear() && 
                  fecha.getMonth() === i;
         });
 
@@ -2188,7 +2209,8 @@ const FiltrosHistorial = () => (
       <div className="flex items-end">
         <button
           onClick={cargarHistorial}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 text-white rounded-lg hover:bg-[#a3418a] transition-colors"
+          style={{ backgroundColor: '#801461' }}
         >
           Aplicar Filtros
         </button>
@@ -2297,7 +2319,7 @@ const FiltrosHistorial = () => (
                           )}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.paciente?.nombreCompleto || '-'}
+                          {registro.paciente?.nombres|| '-'}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
                           {registro.medico?.nombre || '-'}
@@ -2902,7 +2924,10 @@ const filteredPacientes = query === ''
                           {registro.medico?.nombre || '-'}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.paciente?.nombreCompleto || '-'}
+                          {registro.paciente ? 
+                            `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}${registro.paciente.apellido_materno ? ' ' + registro.paciente.apellido_materno : ''}`.trim() 
+                            : '-'
+                          }
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
                           {registro.forma_pago || '-'}
@@ -2914,7 +2939,7 @@ const filteredPacientes = query === ''
                           {registro.numero_factura || '-'}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.usuario?.nombre || '-'}
+                          {registro.usuario?.nombre ||  '-'}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-900">
                           <button
@@ -2961,7 +2986,8 @@ const filteredPacientes = query === ''
               <div className="flex items-end">
                 <button
                   onClick={cargarHistorial}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 text-white rounded-lg hover:bg-[#a3418a] transition-colors"
+                  style={{ backgroundColor: '#801461' }}
                 >
                   Aplicar Filtros
                 </button>
@@ -3005,7 +3031,7 @@ const filteredPacientes = query === ''
                   <thead className="bg-gray-50">
                     <tr>
                       {[
-                        'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
+                        'Fecha', ,'Usuario','Tipo', 'Categoría', 'Paciente', 'Médico',
                         'Forma Pago', 'Moneda', 'Valor', 'Factura'
                       ].map((col) => (
                         <th
@@ -3052,6 +3078,9 @@ const filteredPacientes = query === ''
                                   <br />
                                   <span className="text-xs">{hora}</span>
                                 </td>
+                                <td className="px-3 py-2 text-sm text-gray-900">
+                                {registro.usuario?.nombre ||  '-'}
+                              </td>
                                 <td className="px-3 py-2 whitespace-nowrap">
                                   <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                                     tipo === 'Ingreso' 
@@ -3070,8 +3099,11 @@ const filteredPacientes = query === ''
                                   )}
                                 </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.paciente?.nombreCompleto || '-'}
-                                </td>
+                                    {registro.paciente ? 
+                                      `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}${registro.paciente.apellido_materno ? ' ' + registro.paciente.apellido_materno : ''}`.trim() 
+                                      : '-'
+                                    }
+                                  </td>
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.medico?.nombre || '-'}
                                 </td>
@@ -3087,6 +3119,7 @@ const filteredPacientes = query === ''
                                 <td className="px-3 py-2 text-sm text-gray-900">
                                   {registro.numero_factura || '-'}
                                 </td>
+                                
                               </tr>
                             );
                           })}
@@ -3105,362 +3138,261 @@ const filteredPacientes = query === ''
 }
 
 
-function PaginaPrincipal() {
-  // Move all useState hooks to the top
-  const [showLogin, setShowLogin] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userData, setUserData] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+// Add Session type at the top of the file
+type Session = {
+  user: {
+    id: string;
+    email?: string;
+  };
+};
+
+function PaginaPrincipal({ session }: { session: Session }) {
   const [activeTab, setActiveTab] = useState('caja');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showAllDoctors, setShowAllDoctors] = useState(false);
+  const [showAllPatients, setShowAllPatients] = useState(false);
+  const [selectedMedico, setSelectedMedico] = useState<Medico | null>(null);
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
+  const [medicos, setMedicos] = useState<Medico[]>([]);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nombre: '',
+    apellido: '',
+    especialidad: '',
+    telefono: '',
+    correo: '',
+    porcentaje_comision: 0,
+    activo: true
+  });
 
-  const [userEmail, setUserEmail] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userLastName, setUserLastName] = useState('');
-  const [adminStats, setAdminStats] = useState<any>(null);
-
-  // Update current time every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-
-  // Get user session
-  useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError || !session?.user) {
-          throw sessionError || new Error('No hay sesión activa');
-        }
-
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (userError) throw userError;
-
-        setUserId(session.user.id);
-        setUserEmail(userData.email);
-        setUserName(userData.nombre || '');
-        setUserLastName(userData.apellido || '');
-        setUserData(userData);
-        
-        // Check if user is admin
-        const isUserAdmin = userData.role === 'admin';
-        setIsAdmin(isUserAdmin);
-        
-      } catch (error) {
-        console.error('Error obteniendo sesión:', error);
-        if (error instanceof Error) {
-          toast.error(error.message);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getSession();
-  }, []);
-
-  // Render admin content
-  const renderAdminContent = () => {
-    // Move useState hooks outside of render functions
-    return (
-      <div>
-        {/* Admin content */}
-      </div>
-    );
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('supabase.auth.token');
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      toast.error('Error al cerrar sesión');
+    }
   };
 
-  // Render normal user content
-  const renderNormalUserContent = () => {
-    return (
-      <div>
-        {/* Normal user content */}
-      </div>
-    );
+  const toggleShowAllDoctors = () => {
+    setShowAllDoctors(!showAllDoctors);
+  };
+
+  const toggleShowAllPatients = () => {
+    setShowAllPatients(!showAllPatients);
+  };
+
+  const handleSave = async () => {
+    // Implementation will be added
+  };
+
+  const handleEdit = (item: Medico | Paciente) => {
+    // Implementation will be added
+  };
+
+  const handleDelete = async (id: string) => {
+    // Implementation will be added
+  };
+
+  const resetForm = () => {
+    // Implementation will be added
+  };
+
+  const handleSelectMedico = (medico: Medico) => {
+    setSelectedMedico(medico);
+  };
+
+  const handleSelectPaciente = (paciente: Paciente) => {
+    setSelectedPaciente(paciente);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Navigation */}
-      <div className="lg:hidden">
-        <div className="bg-white shadow-md px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <MolarIcon className="w-8 h-8" stroke={colorPrimary} />
-            <span className="text-lg font-semibold" style={{ color: colorPrimaryDark }}>
-              Andrew's Dental
-            </span>
-          </div>
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-md hover:bg-gray-100"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isMobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-        
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="bg-white shadow-lg">
-            <nav className="px-2 pt-2 pb-3 space-y-1">
-              <button
-                onClick={() => {
-                  setActiveTab('caja');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                  activeTab === 'caja' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Caja
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('pacientes');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                  activeTab === 'pacientes' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Pacientes
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('doctores');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                  activeTab === 'doctores' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Doctores
-              </button>
-              {isAdmin && (
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm fixed w-full top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex-shrink-0 flex items-center">
+                <MolarIcon className="h-8 w-8" stroke={colorPrimary} />
+                <span className="ml-2 text-xl font-bold text-gray-900">Andrew's Dental Group</span>
+              </div>
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <button
-                  onClick={() => {
-                    setActiveTab('admin');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium ${
-                    activeTab === 'admin' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  onClick={() => setActiveTab('caja')}
+                  className={`${
+                    activeTab === 'caja'
+                      ? 'border-[#801461] text-gray-900'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
                 >
-                  Dashboard
+                  Caja
                 </button>
-              )}
-            </nav>
-          </div>
-        )}
-      </div>
-
-      {/* Desktop Navigation */}
-      <div className="hidden lg:block">
-        <div className="bg-white shadow-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex">
-                <div className="flex-shrink-0 flex items-center">
-                  <MolarIcon className="w-8 h-8" stroke={colorPrimary} />
-                  <span className="ml-2 text-lg font-semibold" style={{ color: colorPrimaryDark }}>
-                    Andrew's Dental Group
-                  </span>
-                </div>
+                <button
+                  onClick={() => setActiveTab('doctores')}
+                  className={`${
+                    activeTab === 'doctores'
+                      ? 'border-[#801461] text-gray-900'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                >
+                  Doctores
+                </button>
+                <button
+                  onClick={() => setActiveTab('pacientes')}
+                  className={`${
+                    activeTab === 'pacientes'
+                      ? 'border-[#801461] text-gray-900'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                >
+                  Pacientes
+                </button>
               </div>
-              <div className="flex items-center">
-                <nav className="flex space-x-4">
-                  <button
-                    onClick={() => setActiveTab('caja')}
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${
-                      activeTab === 'caja' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Caja
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('pacientes')}
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${
-                      activeTab === 'pacientes' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Pacientes
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('doctores')}
-                    className={`px-3 py-2 rounded-md text-sm font-medium ${
-                      activeTab === 'doctores' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Doctores
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => setActiveTab('admin')}
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        activeTab === 'admin' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      Dashboard
-                    </button>
-                  )}
-                </nav>
-              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-700 font-medium">
+                {session.user.email || 'Usuario'}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 shadow-md"
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-6 w-6 mr-2" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" 
+                  />
+                </svg>
+                <span className="font-semibold">Cerrar Sesión</span>
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="p-4 sm:p-6">
-            {activeTab === 'caja' && userId && <MiCaja userId={userId} />}
-            {activeTab === 'pacientes' && <GestionPaciente />}
-            {activeTab === 'doctores' && <GestionDoctores />}
-            {activeTab === 'admin' && isAdmin && renderAdminContent()}
-          </div>
-        </div>
-      </div>
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 mt-16">
+        {activeTab === 'caja' && <MiCaja userId={session.user.id} />}
+        {activeTab === 'doctores' && (
+          <GestionDoctores
+            showAllDoctors={showAllDoctors}
+            toggleShowAllDoctors={toggleShowAllDoctors}
+            selectedMedico={selectedMedico}
+            setSelectedMedico={setSelectedMedico}
+            medicos={medicos}
+            setMedicos={setMedicos}
+            loading={loading}
+            formData={formData}
+            setFormData={setFormData}
+            handleSave={handleSave}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            resetForm={resetForm}
+            handleSelectMedico={handleSelectMedico}
+          />
+        )}
+        {activeTab === 'pacientes' && (
+          <GestionPaciente
+            showAllPatients={showAllPatients}
+            toggleShowAllPatients={toggleShowAllPatients}
+            selectedPaciente={selectedPaciente}
+            setSelectedPaciente={setSelectedPaciente}
+            pacientes={pacientes}
+            setPacientes={setPacientes}
+            loading={loading}
+            handleSave={handleSave}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+            resetForm={resetForm}
+            handleSelectPaciente={handleSelectPaciente}
+          />
+        )}
+      </main>
     </div>
   );
 }
 
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const cleanCache = async () => {
-      try {
-        let registrations: ServiceWorkerRegistration[] = []; // <- declarar aqui
-    
-        // Limpiar Service Workers
-        if ('serviceWorker' in navigator) {
-          registrations = [...await navigator.serviceWorker.getRegistrations()];
-          for (const registration of registrations) {
-            await registration.unregister();
-          }
-        }
-    
-        // Limpiar Cache API
-        const cacheNames = await caches.keys();
-        for (const name of cacheNames) {
-          await caches.delete(name);
-        }
-    
-        // Limpiar localStorage y sessionStorage selectivamente
-        const itemsToKeep = ['supabase.auth.token'];
-        Object.keys(localStorage).forEach(key => {
-          if (!itemsToKeep.includes(key)) {
-            localStorage.removeItem(key);
-          }
-        });
-    
-        Object.keys(sessionStorage).forEach(key => {
-          if (!itemsToKeep.includes(key)) {
-            sessionStorage.removeItem(key);
-          }
-        });
-    
-        // Forzar recarga si se limpió algo
-        if (cacheNames.length > 0 || registrations.length > 0) {
-          window.location.reload();
-        }
-      } catch (error) {
-        console.error('Error cleaning cache:', error);
-      }
-    };
-    
-  
-    
-    cleanCache();
+    let mounted = true;
 
-    const checkAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
         
-        if (sessionError || !session?.user) {
-          setIsLoggedIn(false);
-          return;
+        if (mounted) {
+          setSession(initialSession);
+          setLoading(false);
         }
-        testSupabase();
-        console.log('Verificando dados do usuário ...');
-    
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('activo, nombre, apellido')
-          .eq('id', session.user.id)
-          .single()
-          .throwOnError();
-          console.log('Dados do usuário:', userData); 
+
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+          console.log('Auth state changed:', event);
           
-        setIsLoggedIn(!!userData?.activo);
-        if (!userData?.activo) {
-          await supabase.auth.signOut();
-        }
+          if (mounted) {
+            setSession(newSession);
+            setLoading(false);
+          }
+
+          if (newSession) {
+            localStorage.setItem('supabase.auth.token', JSON.stringify(newSession));
+          } else {
+            localStorage.removeItem('supabase.auth.token');
+          }
+        });
+
+        return () => {
+          mounted = false;
+          subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error('Auth check error:', error);
-        await supabase.auth.signOut();
-        setIsLoggedIn(false);
+        console.error('Auth initialization error:', error);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('activo, nombre, apellido')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (userError || !userData?.activo) {
-          await supabase.auth.signOut();
-          setIsLoggedIn(false);
-        } else {
-          setIsLoggedIn(true);
-        }
-      } else {
-        setIsLoggedIn(false);
-      }
-    });
-
-    return () => subscription?.unsubscribe();
+    initializeAuth();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#801461] to-[#4a0d3a]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+          <p className="mt-4 text-white">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Router>
-      <Toaster position="top-right" />
-      <Routes>
-        {/* Ruta pública */}
-        <Route path="/login" element={!isLoggedIn ? <IniciarSesion /> : <Navigate to="/caja" />} />
-
-        {/* Ruta protegida */}
-        <Route path="/" element={<Navigate to="/caja" replace />} />
-        <Route path="/caja" element={isLoggedIn ? <PaginaPrincipal /> : <Navigate to="/login" replace />} />
-
-        {/* Redirección por defecto */}
-        <Route path="*" element={<Navigate to={isLoggedIn ? '/caja' : '/login'} replace />} />
-      </Routes>
-    </Router>
+    <div className="min-h-screen">
+      {!session ? (
+        <div className="min-h-screen bg-gradient-to-br from-[#801461] to-[#4a0d3a]">
+          <IniciarSesion />
+        </div>
+      ) : (
+        <div className="min-h-screen bg-gray-100">
+          <PaginaPrincipal session={session} />
+        </div>
+      )}
+    </div>
   );
 }
 
