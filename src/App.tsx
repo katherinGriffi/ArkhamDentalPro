@@ -1575,8 +1575,8 @@ function MiCaja({ userId }: { userId: string }) {
   const [medicoId, setMedicoId] = useState<string | null>(null);
   const [formaPago, setFormaPago] = useState<'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS'>('EFECTIVO');
  const [medicos, setMedicos] = useState<Medico[]>([]);
-const [isLoadingMedicos, setIsLoadingMedicos] = useState(true);
-const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
+    const [isLoadingMedicos, setIsLoadingMedicos] = useState(true);
+    const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
   const [busquedaPaciente, setBusquedaPaciente] = useState('');
   const [pacienteId, setPacienteId] = useState<string | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
@@ -1585,12 +1585,22 @@ const [errorMedicos, setErrorMedicos] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [selectedPaciente, setSelectedPaciente] = useState<{id: string, nombres: string, apellido_paterno: string} | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [fechaInicioHistorial, setFechaInicioHistorial] = useState<string>(() => {
-    const date = new Date();
-    date.setMonth(date.getMonth() - 1);
-    return date.toISOString().split('T')[0];
-  });
-  const [fechaFinHistorial, setFechaFinHistorial] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [fechaInicioHistorial, setFechaInicioHistorial] = useState<string>(''); 
+
+
+  
+  const [usuarioFiltro, setUsuarioFiltro] = useState('');
+const [tipoFiltro, setTipoFiltro] = useState('');
+const [categoriaFiltro, setCategoriaFiltro] = useState('');
+const [pacienteFiltro, setPacienteFiltro] = useState('');
+const [medicoFiltro, setMedicoFiltro] = useState('');
+const [fechaFinHistorial, setFechaFinHistorial] = useState<string>(() => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 1); // Vai para o próximo mês
+  date.setDate(0); // Dia 0 do próximo mês = último dia do mês atual
+  return date.toISOString().split('T')[0];
+});
+
   const [chartDataHistorial, setChartDataHistorial] = useState({
     ingresosPorCategoria: {
       labels: [],
@@ -1852,100 +1862,7 @@ const cargarMedicos = async () => {
 
 
     // Preparar datos para el gráfico
-const prepararDatosGrafico = (registros: RegistroCaja[]) => {
-  // Filtrar y sumar ingresos (incluye ajustes positivos)
-  const ingresos = registros.filter(r => 
-    r.tipo_movimiento?.tipo === 'Ingreso' || 
-    (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor >= 0)
-  );
-  
-  const categoriasIngresos = ingresos.reduce((acc, registro) => {
-    const categoria = registro.tipo_movimiento?.nombre || 'Otros ingresos';
-    acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
-    return acc;
-  }, {} as Record<string, number>);
 
-  // Filtrar y sumar egresos (incluye ajustes negativos)
-  const egresos = registros.filter(r => 
-    r.tipo_movimiento?.tipo === 'Egreso' || 
-    (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor < 0)
-  );
-  
-  const categoriasEgresos = egresos.reduce((acc, registro) => {
-    const categoria = registro.tipo_movimiento?.nombre || 'Otros egresos';
-    acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
-    return acc;
-  }, {} as Record<string, number>);
-
-  // Calcular totales
-  const totalIngresos = Object.values(categoriasIngresos).reduce((a, b) => a + b, 0);
-  const totalEgresos = Object.values(categoriasEgresos).reduce((a, b) => a + b, 0);
-
-  // Preparar datos para el gráfico de evolución del balance
-  const registrosOrdenados = [...registros].sort((a, b) => 
-    new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
-  );
-
-  let balanceAcumulado = 0;
-  const balanceEvolucion = registrosOrdenados.map(registro => {
-    const valor = registro.tipo_movimiento?.tipo === 'Ingreso' ? 
-      registro.valor : 
-      registro.tipo_movimiento?.tipo === 'Egreso' ? 
-        -registro.valor : 
-        registro.valor;
-    
-    balanceAcumulado += valor;
-    return {
-      fecha: new Date(registro.fecha).toLocaleDateString('es-ES'),
-      balance: balanceAcumulado
-    };
-  });
-
-  return {
-    ingresosPorCategoria: {
-      labels: Object.keys(categoriasIngresos),
-      datasets: [{
-        data: Object.values(categoriasIngresos),
-        backgroundColor: [
-          '#4CAF50', '#81C784', '#A5D6A7', '#C8E6C9',
-          '#388E3C', '#66BB6A', '#43A047', '#2E7D32'
-        ],
-        borderWidth: 1
-      }]
-    },
-    egresosPorCategoria: {
-      labels: Object.keys(categoriasEgresos),
-      datasets: [{
-        data: Object.values(categoriasEgresos),
-        backgroundColor: [
-          '#F44336', '#E57373', '#EF9A9A', '#FFCDD2',
-          '#D32F2F', '#F44336', '#E53935', '#C62828'
-        ],
-        borderWidth: 1
-      }]
-    },
-    distribucionGeneral: {
-      labels: ['Ingresos', 'Egresos'],
-      datasets: [{
-        data: [totalIngresos, totalEgresos],
-        backgroundColor: ['#81C784', '#E57373'],
-        borderColor: ['#388E3C', '#D32F2F'],
-        borderWidth: 1
-      }]
-    },
-    balanceEvolucion: {
-      labels: balanceEvolucion.map(item => item.fecha),
-      datasets: [{
-        label: 'Balance',
-        data: balanceEvolucion.map(item => item.balance),
-        borderColor: '#4CAF50',
-        backgroundColor: 'rgba(76, 175, 80, 0.1)',
-        fill: true,
-        tension: 0.4
-      }]
-    }
-  };
-};
 
   // Cargar registros y calcular balances
 const cargarRegistros = async (fechaSeleccionada: string) => {
@@ -2038,166 +1955,278 @@ const cargarRegistros = async (fechaSeleccionada: string) => {
   };
 
   // Cargar historial
-const cargarHistorial = async () => {
-  try {
-    setIsLoading(true);
-    const { data: registrosData, error: registrosError } = await supabase
-      .from('registros_caja')
-      .select(`
-        *,
-        tipo_movimiento:tipos_movimiento(*),
-        usuario:users(nombre),
-        medico:medicos(*),
-        paciente:pacientes(*)
-      `)
-      .gte('fecha', fechaInicioHistorial)
-      .lte('fecha', fechaFinHistorial)
-      .order('fecha', { ascending: false });
-
-    if (registrosError) throw registrosError;
-
-    const registrosProcesados: RegistroCaja[] = registrosData.map((registro: any) => ({
-      id: String(registro.id),
-      fecha: String(registro.fecha),
-      tipo_movimiento_id: Number(registro.tipo_movimiento_id),
-      tipo_movimiento: registro.tipo_movimiento ? {
-        id: Number(registro.tipo_movimiento.id),
-        nombre: String(registro.tipo_movimiento.nombre),
-        tipo: registro.tipo_movimiento.tipo as 'Ingreso' | 'Egreso' | 'Ajuste'
-      } : undefined,
-      descripcion: String(registro.descripcion),
-      valor: Number(registro.valor),
-      numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
-      user_id: String(registro.user_id),
-      created_at: String(registro.created_at),
-      usuario: registro.usuario ? {
-        nombre: String(registro.usuario.nombre)
-      } : undefined,
-      paciente: registro.paciente ? {
-        id: String(registro.paciente.id),
-        nombres: String(registro.paciente.nombres),
-        apellido_paterno: String(registro.paciente.apellido_paterno),
-        apellido_materno: String(registro.paciente.apellido_materno),
-        activo: Boolean(registro.paciente.activo)
-      } : undefined,
-      medico: registro.medico ? {
-        id: String(registro.medico.id),
-        nombre: String(registro.medico.nombre),
-        activo: Boolean(registro.medico.activo)
-      } : undefined,
-      forma_pago: registro.forma_pago as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS' | undefined
-    }));
-
-    // Organizar registros por año y mes
-    const historialFormateado: HistorialAno = {
-      ano: new Date(fechaInicioHistorial).getFullYear(),
-      meses: Array.from({ length: 12 }, (_, i) => {
-        const registrosDelMes = registrosProcesados.filter((reg: RegistroCaja) => {
-          const fecha = new Date(reg.fecha);
-          return fecha.getFullYear() === new Date(fechaInicioHistorial).getFullYear() && 
-                 fecha.getMonth() === i;
-        });
-
-        // Calcular balance del mes
-        const balanceMes = registrosDelMes.reduce((sum, reg) => {
-          const tipo = reg.tipo_movimiento?.tipo;
-          if (tipo === 'Ingreso') {
-            return sum + reg.valor;
-          } else if (tipo === 'Egreso') {
-            return sum - Math.abs(reg.valor);
-          } else { // Ajuste
-            return sum + reg.valor;
-          }
-        }, 0);
-
-        return {
-          mes: i + 1,
-          registros: registrosDelMes,
-          balanceMes
-        };
-      })
-    };
-
-    setHistorialFiltrado(historialFormateado);
-
-    // Calcular balance total
-    const balance = registrosProcesados.reduce((sum, reg) => {
-      const tipo = reg.tipo_movimiento?.tipo;
-      if (tipo === 'Ingreso') {
-        return sum + reg.valor;
-      } else if (tipo === 'Egreso') {
-        return sum - Math.abs(reg.valor);
-      } else { // Ajuste
-        return sum + reg.valor;
-      }
-    }, 0);
-
-    // Preparar datos para los gráficos
-    const chartData = prepararDatosGrafico(registrosProcesados);
-
-    // Actualizar estados
-    setBalanceMes(balance);
-    setChartDataHistorial(chartData);
-
-  } catch (error) {
-    console.error('Error cargando historial:', error);
-    if (error instanceof Error) {
-      toast.error(`Error al cargar historial: ${error.message}`);
-    } else {
-      toast.error('Error al cargar historial');
+  const cargarHistorial = async (filtros: {
+    fechaInicio: string,
+    fechaFin: string,
+    usuario?: string,
+    tipo?: string,
+    categoria?: string,
+    paciente?: string,
+    medico?: string,
+    formaPago?: string
+  }) => {
+    try {
+      setIsLoading(true);
+      
+      // Construir la consulta base
+      let query = supabase
+        .from('registros_caja')
+        .select(`
+          id,
+          fecha,
+          descripcion,
+          valor,
+          numero_factura,
+          forma_pago,
+          moneda,
+          created_at,
+          tipo_movimiento:tipos_movimiento(id, nombre, tipo),
+          usuario:users(id, nombre),
+          medico:medicos(id, nombre),
+          paciente:pacientes(id, nombres, apellido_paterno, apellido_materno)
+        `)
+        .gte('fecha', filtros.fechaInicio)
+        .lte('fecha', filtros.fechaFin)
+        .order('fecha', { ascending: false });
+  
+      // Aplicar filtros adicionales si existen
+      if (filtros.usuario) query = query.eq('user_id', filtros.usuario);
+      if (filtros.tipo) query = query.eq('tipo_movimiento.tipo', filtros.tipo);
+      if (filtros.categoria) query = query.eq('tipo_movimiento_id', filtros.categoria);
+      if (filtros.paciente) query = query.eq('paciente_id', filtros.paciente);
+      if (filtros.medico) query = query.eq('medico_id', filtros.medico);
+      if (filtros.formaPago) query = query.eq('forma_pago', filtros.formaPago);
+  
+      const { data: registrosData, error: registrosError } = await query;
+  
+      if (registrosError) throw registrosError;
+  
+      // Procesar los registros
+      const registrosProcesados: RegistroCaja[] = registrosData.map((registro: any) => ({
+        id: String(registro.id),
+        fecha: String(registro.fecha),
+        tipo_movimiento_id: registro.tipo_movimiento ? Number(registro.tipo_movimiento.id) : null,
+        tipo_movimiento: registro.tipo_movimiento ? {
+          id: Number(registro.tipo_movimiento.id),
+          nombre: String(registro.tipo_movimiento.nombre),
+          tipo: registro.tipo_movimiento.tipo as 'Ingreso' | 'Egreso' | 'Ajuste'
+        } : undefined,
+        descripcion: String(registro.descripcion),
+        valor: Number(registro.valor),
+        numero_factura: registro.numero_factura ? String(registro.numero_factura) : undefined,
+        forma_pago: registro.forma_pago as 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS',
+        moneda: registro.moneda as 'SOLES' | 'USD',
+        user_id: registro.usuario ? String(registro.usuario.id) : undefined,
+        created_at: String(registro.created_at),
+        usuario: registro.usuario ? {
+          id: String(registro.usuario.id),
+          nombre: String(registro.usuario.nombre)
+        } : undefined,
+        paciente: registro.paciente ? {
+          id: String(registro.paciente.id),
+          nombres: String(registro.paciente.nombres),
+          apellido_paterno: String(registro.paciente.apellido_paterno),
+          apellido_materno: String(registro.paciente.apellido_materno)
+        } : undefined,
+        medico: registro.medico ? {
+          id: String(registro.medico.id),
+          nombre: String(registro.medico.nombre)
+        } : undefined
+      }));
+  
+      // Organizar registros por año y mes
+      const historialFormateado = organizarRegistrosPorMes(registrosProcesados);
+      setHistorialFiltrado(historialFormateado);
+  
+      // Preparar datos para gráficos
+      const chartData = prepararDatosGrafico(registrosProcesados);
+      setChartDataHistorial(chartData);
+  
+      // Calcular balance total
+      const balanceTotal = calcularBalanceTotal(registrosProcesados);
+      setBalanceMes(balanceTotal);
+  
+    } catch (error) {
+      console.error('Error cargando historial:', error);
+      toast.error(error instanceof Error ? error.message : 'Error al cargar historial');
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+  
+  // Función auxiliar para organizar registros por mes
+  const organizarRegistrosPorMes = (registros: RegistroCaja[]) => {
+    const resultado: {ano: number, meses: {mes: number, registros: RegistroCaja[], balanceMes: number}[]} = {
+      ano: new Date().getFullYear(),
+      meses: Array.from({ length: 12 }, (_, i) => ({
+        mes: i + 1,
+        registros: [],
+        balanceMes: 0
+      }))
+    };
+  
+    registros.forEach(registro => {
+      const fecha = new Date(registro.fecha);
+      const mes = fecha.getMonth();
+      const ano = fecha.getFullYear();
+  
+      if (ano === resultado.ano) {
+        resultado.meses[mes].registros.push(registro);
+        resultado.meses[mes].balanceMes += registro.valor;
+      }
+    });
+  
+    return resultado;
+  };
+  
+  // Función auxiliar para calcular el balance total
+  const calcularBalanceTotal = (registros: RegistroCaja[]) => {
+    return registros.reduce((total, registro) => total + registro.valor, 0);
+  };
+  
+  // Función auxiliar para preparar datos de gráficos
+  const prepararDatosGrafico = (registros: RegistroCaja[]) => {
+    // Filtrar y sumar ingresos (incluye ajustes positivos)
+    const ingresos = registros.filter(r => 
+      r.tipo_movimiento?.tipo === 'Ingreso' || 
+      (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor >= 0)
+    );
+    
+    const categoriasIngresos = ingresos.reduce((acc, registro) => {
+      const categoria = registro.tipo_movimiento?.nombre || 'Otros ingresos';
+      acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
+      return acc;
+    }, {} as Record<string, number>);
+  
+    // Filtrar y sumar egresos (incluye ajustes negativos)
+    const egresos = registros.filter(r => 
+      r.tipo_movimiento?.tipo === 'Egreso' || 
+      (r.tipo_movimiento?.tipo === 'Ajuste' && r.valor < 0)
+    );
+    
+    const categoriasEgresos = egresos.reduce((acc, registro) => {
+      const categoria = registro.tipo_movimiento?.nombre || 'Otros egresos';
+      acc[categoria] = (acc[categoria] || 0) + Math.abs(registro.valor);
+      return acc;
+    }, {} as Record<string, number>);
+  
+    // Calcular totales
+    const totalIngresos = Object.values(categoriasIngresos).reduce((a, b) => a + b, 0);
+    const totalEgresos = Object.values(categoriasEgresos).reduce((a, b) => a + b, 0);
+  
+    // Preparar datos para el gráfico de evolución del balance
+    const registrosOrdenados = [...registros].sort((a, b) => 
+      new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+    );
+  
+    let balanceAcumulado = 0;
+    const balanceEvolucion = registrosOrdenados.map(registro => {
+      balanceAcumulado += registro.valor;
+      return {
+        fecha: new Date(registro.fecha).toLocaleDateString('es-ES'),
+        balance: balanceAcumulado
+      };
+    });
+  
+    return {
+      ingresosPorCategoria: {
+        labels: Object.keys(categoriasIngresos),
+        datasets: [{
+          data: Object.values(categoriasIngresos),
+          backgroundColor: [
+            '#4CAF50', '#81C784', '#A5D6A7', '#C8E6C9',
+            '#388E3C', '#66BB6A', '#43A047', '#2E7D32'
+          ],
+          borderWidth: 1
+        }]
+      },
+      egresosPorCategoria: {
+        labels: Object.keys(categoriasEgresos),
+        datasets: [{
+          data: Object.values(categoriasEgresos),
+          backgroundColor: [
+            '#F44336', '#E57373', '#EF9A9A', '#FFCDD2',
+            '#D32F2F', '#F44336', '#E53935', '#C62828'
+          ],
+          borderWidth: 1
+        }]
+      },
+      distribucionGeneral: {
+        labels: ['Ingresos', 'Egresos'],
+        datasets: [{
+          data: [totalIngresos, totalEgresos],
+          backgroundColor: ['#81C784', '#E57373'],
+          borderColor: ['#388E3C', '#D32F2F'],
+          borderWidth: 1
+        }]
+      },
+      balanceEvolucion: {
+        labels: balanceEvolucion.map(item => item.fecha),
+        datasets: [{
+          label: 'Balance',
+          data: balanceEvolucion.map(item => item.balance),
+          borderColor: '#4CAF50',
+          backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      }
+    };
+  };
 
 // Componente de filtros para el historial (debes agregarlo en tu JSX)
-const FiltrosHistorial = () => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
-    <div>
-      <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
-      <input
-        type="date"
-        value={fechaInicioHistorial}
-        onChange={(e) => setFechaInicioHistorial(e.target.value)}
-        className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
-      <input
-        type="date"
-        value={fechaFinHistorial}
-        onChange={(e) => setFechaFinHistorial(e.target.value)}
-        className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-      />
-    </div>
-    <div className="flex items-end">
-      <button
-        onClick={cargarHistorial}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-      >
-        Aplicar Filtros
-      </button>
-    </div>
-  </div>
-);
+const FiltrosHistorial = () => {
+  // Add these states if not already defined
+  const [usuarios, setUsuarios] = useState<Array<{id: string, nombre: string}>>([]);
+  const [categorias, setCategorias] = useState<Array<{id: string, nombre: string}>>([]);
 
-// En tu JSX, muestra los gráficos del historial así:
-{historialVisible && (
-  <div className="mt-6 space-y-6">
-    {/* Filtros de fecha */}
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-      <div>
+  useEffect(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+    // Solo setea si están vacías
+    setFechaInicioHistorial(prev => prev || firstDay.toISOString().split("T")[0]);
+    setFechaFinHistorial(prev => prev || lastDay.toISOString().split("T")[0]);
+  }, []);
+  
+
+  // Fetch users and categories on mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        // Fetch users
+        const { data: users } = await supabase.from('users').select('id, nombre');
+        if (users) setUsuarios(users);
+        
+        // Fetch categories
+        const { data: cats } = await supabase.from('tipos_movimiento').select('id, nombre');
+        if (cats) setCategorias(cats);
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+  
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+      {/* Fecha Inicio */}
+      <div className="md:col-span-1">
         <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
         <input
-          type="date"
-          value={fechaInicioHistorial}
-          onChange={(e) => setFechaInicioHistorial(e.target.value)}
-          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-        />
+  type="date"
+  value={fechaInicioHistorial}
+  onChange={(e) => setFechaInicioHistorial(e.target.value)}
+  min="2020-01-01" // opcional: permite selecionar desde 2020
+  className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+/>
       </div>
-      <div>
+
+      {/* Fecha Fin */}
+      <div className="md:col-span-1">
         <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
         <input
           type="date"
@@ -2206,148 +2235,123 @@ const FiltrosHistorial = () => (
           className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
         />
       </div>
-      <div className="flex items-end">
-        <button
-          onClick={cargarHistorial}
-          className="px-4 py-2 text-white rounded-lg hover:bg-[#a3418a] transition-colors"
-          style={{ backgroundColor: '#801461' }}
+
+      {/* Usuario */}
+      <div className="md:col-span-1">
+        <label className="block text-sm font-medium mb-1">Usuario:</label>
+        <select
+          value={usuarioFiltro}
+          onChange={(e) => setUsuarioFiltro(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
         >
-          Aplicar Filtros
+          <option value="">Todos</option>
+          {usuarios.map((u) => (
+            <option key={u.id} value={u.id}>{u.nombre}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tipo */}
+      <div className="md:col-span-1">
+        <label className="block text-sm font-medium mb-1">Tipo:</label>
+        <select
+          value={tipoFiltro}
+          onChange={(e) => setTipoFiltro(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        >
+          <option value="">Todos</option>
+          <option value="Ingreso">Ingreso</option>
+          <option value="Egreso">Egreso</option>
+          <option value="Ajuste">Ajuste</option>
+        </select>
+      </div>
+
+      {/* Categoría */}
+      <div className="md:col-span-1">
+        <label className="block text-sm font-medium mb-1">Categoría:</label>
+        <select
+          value={categoriaFiltro}
+          onChange={(e) => setCategoriaFiltro(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        >
+          <option value="">Todas</option>
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>{c.nombre}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Paciente */}
+      <div className="md:col-span-1">
+        <label className="block text-sm font-medium mb-1">Paciente:</label>
+        <select
+          value={pacienteFiltro}
+          onChange={(e) => setPacienteFiltro(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        >
+          <option value="">Todos</option>
+          {pacientes.map((p) => (
+            <option key={p.id} value={p.id}>
+              {`${p.nombres} ${p.apellido_paterno || ''}`.trim()}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Médico */}
+      <div className="md:col-span-1">
+        <label className="block text-sm font-medium mb-1">Médico:</label>
+        <select
+          value={medicoFiltro}
+          onChange={(e) => setMedicoFiltro(e.target.value)}
+          className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
+        >
+          <option value="">Todos</option>
+          {medicos.map((m) => (
+            <option key={m.id} value={m.id}>{m.nombre}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Botones */}
+      <div className="flex items-end gap-2 md:col-span-2 lg:col-span-7">
+      <button 
+  onClick={() => cargarHistorial({
+    fechaInicio: fechaInicioHistorial,
+    fechaFin: fechaFinHistorial,
+    usuario: usuarioFiltro,
+    tipo: tipoFiltro,
+    categoria: categoriaFiltro,
+    paciente: pacienteFiltro,
+    medico: medicoFiltro
+  })}
+  className="px-4 py-2 text-white rounded-lg hover:opacity-90 flex-1"
+  style={{ backgroundColor: '#801461' }}
+>
+  Aplicar Filtros
+</button>
+        <button
+          onClick={() => {
+            setFechaInicioHistorial('');
+            setFechaFinHistorial('');
+            setUsuarioFiltro('');
+            setTipoFiltro('');
+            setCategoriaFiltro('');
+            setPacienteFiltro('');
+            setMedicoFiltro('');
+          }}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex-1"
+        >
+          Limpiar
         </button>
       </div>
     </div>
+  );
+};
 
-    {/* Gráficos */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-sm font-semibold mb-2 text-center">Evolución del Balance</h3>
-        <div className="h-64">
-          <Line data={chartDataHistorial.balanceEvolucion} />
-        </div>
-      </div>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-sm font-semibold mb-2 text-center">Distribución General</h3>
-        <div className="flex items-center justify-center">
-          <div className="w-1/2 h-64">
-            <Pie data={chartDataHistorial.distribucionGeneral} />
-          </div>
-          <div className="w-1/2 pl-4">
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-sm">Ingresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[0] || 0)}</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span className="text-sm">Egresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[1] || 0)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    {/* Tabla de historial */}
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {[
-                'Fecha', 'Tipo', 'Categoría', 'Paciente', 'Médico',
-                'Forma Pago', 'Moneda', 'Valor', 'Factura'
-              ].map((col) => (
-                <th
-                  key={col}
-                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                  style={{ color: colorPrimaryDark }}
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {historialFiltrado?.meses?.map((mesData: HistorialMes) => {
-              if (mesData.registros.length === 0) return null;
-              
-              const nombreMes = new Date(historialFiltrado.ano, mesData.mes - 1, 1)
-                .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-              
-              return (
-                <React.Fragment key={`${historialFiltrado.ano}-${mesData.mes}`}>
-                  <tr className="bg-gray-50">
-                    <td colSpan={9} className="px-3 py-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-900">{nombreMes}</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">Balance del mes:</span>
-                          <span className={`text-sm font-medium ${mesData.balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatMoneda(mesData.balanceMes)}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                  {mesData.registros.map((registro) => {
-                    const tipo = registro.tipo_movimiento?.tipo;
-                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                    const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
-                    
-                    return (
-                      <tr key={registro.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                          {fechaISO}
-                          <br />
-                          <span className="text-xs">{hora}</span>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                            tipo === 'Ingreso' 
-                              ? 'bg-green-100 text-green-800' 
-                              : tipo === 'Egreso' 
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {tipo || 'DESC'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                          {registro.descripcion && (
-                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.paciente?.nombres|| '-'}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.medico?.nombre || '-'}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.forma_pago || '-'}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.moneda || 'SOLES'}
-                        </td>
-                        <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
-                          {valorDisplay}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-900">
-                          {registro.numero_factura || '-'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-)}
+// En tu JSX, muestra los gráficos del historial así:
+
 
   useEffect(() => {
     if (userId && fecha) {
@@ -2962,176 +2966,147 @@ const filteredPacientes = query === ''
 
         {/* Historial */}
         {historialVisible && (
-          <div className="mt-6 space-y-6">
-            {/* Filtros de fecha */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha Inicio:</label>
-                <input
-                  type="date"
-                  value={fechaInicioHistorial}
-                  onChange={(e) => setFechaInicioHistorial(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Fecha Fin:</label>
-                <input
-                  type="date"
-                  value={fechaFinHistorial}
-                  onChange={(e) => setFechaFinHistorial(e.target.value)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm p-2 border text-sm"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  onClick={cargarHistorial}
-                  className="px-4 py-2 text-white rounded-lg hover:bg-[#a3418a] transition-colors"
-                  style={{ backgroundColor: '#801461' }}
-                >
-                  Aplicar Filtros
-                </button>
-              </div>
-            </div>
+  <div className="mt-6 space-y-6">
+    {/* Reemplaza los filtros de fecha con el componente completo */}
+    <FiltrosHistorial />
 
-            {/* Gráficos */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-sm font-semibold mb-2 text-center">Evolución del Balance</h3>
-                <div className="h-64">
-                  <Line data={chartDataHistorial.balanceEvolucion} />
-                </div>
+    {/* Gráficos (se mantiene igual) */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-sm font-semibold mb-2 text-center">Evolución del Balance</h3>
+        <div className="h-64">
+          <Line data={chartDataHistorial.balanceEvolucion} />
+        </div>
+      </div>
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-sm font-semibold mb-2 text-center">Distribución General</h3>
+        <div className="flex items-center justify-center">
+          <div className="w-1/2 h-64">
+            <Pie data={chartDataHistorial.distribucionGeneral} />
+          </div>
+          <div className="w-1/2 pl-4">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm">Ingresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[0] || 0)}</span>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-sm font-semibold mb-2 text-center">Distribución General</h3>
-                <div className="flex items-center justify-center">
-                  <div className="w-1/2 h-64">
-                    <Pie data={chartDataHistorial.distribucionGeneral} />
-                  </div>
-                  <div className="w-1/2 pl-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Ingresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[0] || 0)}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                        <span className="text-sm">Egresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[1] || 0)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Tabla de historial */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {[
-                        'Fecha', ,'Usuario','Tipo', 'Categoría', 'Paciente', 'Médico',
-                        'Forma Pago', 'Moneda', 'Valor', 'Factura'
-                      ].map((col) => (
-                        <th
-                          key={col}
-                          className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
-                          style={{ color: colorPrimaryDark }}
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {historialFiltrado?.meses?.map((mesData: HistorialMes) => {
-                      if (mesData.registros.length === 0) return null;
-                      
-                      const nombreMes = new Date(historialFiltrado.ano, mesData.mes - 1, 1)
-                        .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-                      
-                      return (
-                        <React.Fragment key={`${historialFiltrado.ano}-${mesData.mes}`}>
-                          <tr className="bg-gray-50">
-                            <td colSpan={9} className="px-3 py-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-gray-900">{nombreMes}</span>
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm text-gray-600">Balance del mes:</span>
-                                  <span className={`text-sm font-medium ${mesData.balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatMoneda(mesData.balanceMes)}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                          {mesData.registros.map((registro) => {
-                            const tipo = registro.tipo_movimiento?.tipo;
-                            const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
-                            const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
-                            
-                            return (
-                              <tr key={registro.id} className="hover:bg-gray-50">
-                                <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
-                                  {fechaISO}
-                                  <br />
-                                  <span className="text-xs">{hora}</span>
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                {registro.usuario?.nombre ||  '-'}
-                              </td>
-                                <td className="px-3 py-2 whitespace-nowrap">
-                                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                    tipo === 'Ingreso' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : tipo === 'Egreso' 
-                                        ? 'bg-red-100 text-red-800'
-                                        : 'bg-yellow-100 text-yellow-800'
-                                  }`}>
-                                    {tipo || 'DESC'}
-                                  </span>
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.tipo_movimiento?.nombre || 'Desconocido'}
-                                  {registro.descripcion && (
-                                    <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
-                                  )}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                    {registro.paciente ? 
-                                      `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}${registro.paciente.apellido_materno ? ' ' + registro.paciente.apellido_materno : ''}`.trim() 
-                                      : '-'
-                                    }
-                                  </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.medico?.nombre || '-'}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.forma_pago || '-'}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.moneda || 'SOLES'}
-                                </td>
-                                <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
-                                  {valorDisplay}
-                                </td>
-                                <td className="px-3 py-2 text-sm text-gray-900">
-                                  {registro.numero_factura || '-'}
-                                </td>
-                                
-                              </tr>
-                            );
-                          })}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span className="text-sm">Egresos: {formatMoneda(chartDataHistorial.distribucionGeneral.datasets[0].data[1] || 0)}</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    </div>
+
+    {/* Tabla de historial */}
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {[
+                'Fecha', 'Usuario', 'Tipo', 'Categoría', 'Paciente', 'Médico',
+                'Forma Pago', 'Moneda', 'Valor', 'Factura'
+              ].map((col) => (
+                <th
+                  key={col}
+                  className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider whitespace-nowrap"
+                  style={{ color: colorPrimaryDark }}
+                >
+                  {col}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {historialFiltrado?.meses?.map((mesData: HistorialMes) => {
+              if (mesData.registros.length === 0) return null;
+              
+              const nombreMes = new Date(historialFiltrado.ano, mesData.mes - 1, 1)
+                .toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+              
+              return (
+                <React.Fragment key={`${historialFiltrado.ano}-${mesData.mes}`}>
+                  <tr className="bg-gray-50">
+                    <td colSpan={10} className="px-3 py-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-900">{nombreMes}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">Balance del mes:</span>
+                          <span className={`text-sm font-medium ${mesData.balanceMes >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatMoneda(mesData.balanceMes)}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {mesData.registros.map((registro) => {
+                    const tipo = registro.tipo_movimiento?.tipo;
+                    const { display: valorDisplay, color: valorColor } = formatValor(registro.valor, tipo || 'Egreso');
+                    const { fecha: fechaISO, hora } = formatDateTime(registro.fecha);
+                    
+                    return (
+                      <tr key={registro.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                          {fechaISO}
+                          <br />
+                          <span className="text-xs">{hora}</span>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.usuario?.nombre || '-'}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            tipo === 'Ingreso' 
+                              ? 'bg-green-100 text-green-800' 
+                              : tipo === 'Egreso' 
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {tipo || 'DESC'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.tipo_movimiento?.nombre || 'Desconocido'}
+                          {registro.descripcion && (
+                            <p className="text-xs text-gray-500 truncate max-w-xs">{registro.descripcion}</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.paciente ? 
+                            `${registro.paciente.nombres} ${registro.paciente.apellido_paterno}${registro.paciente.apellido_materno ? ' ' + registro.paciente.apellido_materno : ''}`.trim() 
+                            : '-'
+                          }
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.medico?.nombre || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.forma_pago || '-'}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.moneda || 'SOLES'}
+                        </td>
+                        <td className={`px-3 py-2 text-sm font-medium ${valorColor}`}>
+                          {valorDisplay}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-900">
+                          {registro.numero_factura || '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </div>
   );
