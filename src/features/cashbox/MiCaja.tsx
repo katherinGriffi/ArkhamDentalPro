@@ -1,10 +1,11 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase'; // Ajuste o caminho conforme necessário
 import { toast } from 'react-hot-toast';
 import {    Chart as ChartJS,    CategoryScale,    LinearScale,    PointElement,    LineElement,    ArcElement,    Title,    Tooltip,    Legend,    Filler, // Importar iller para preenchimento de área em gráficos de linha
 } from 'chart.js';
 import { Line, Pie } from 'react-chartjs-2';
+import { RegistroCaja, TipoMovimiento, Medico, Paciente, HistorialMes, HistorialAno } from '../types/index';
+
 
 // Registrar os componentes do Chart.js
 ChartJS.register(    CategoryScale,    LinearScale,    PointElement,    LineElement,    ArcElement,    Title,    Tooltip,    Legend,    Filler
@@ -105,6 +106,8 @@ interface MiCajaProps {
 // --- Componente Principal ---
 function MiCaja({ userId, userRole }: MiCajaProps) {
     // --- Estados --- 
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null); // State for fetched user ID
+    const [isSessionLoading, setIsSessionLoading] = useState(true); // Loading state for session check
     const [registros, setRegistros] = useState<RegistroCaja[]>([]);
     const [fecha, setFecha] = useState<string>(new Date().toISOString().split('T')[0]);
     const [descripcion, setDescripcion] = useState('');
@@ -138,7 +141,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
     const [formaPagoFiltro, setFormaPagoFiltro] = useState('');
     const [busquedaMedico, setBusquedaMedico] = useState('');
     const [showMedicoDropdown, setShowMedicoDropdown] = useState(false);
-
+    
     // Estado para dados dos gráficos (inicialização mais limpa)
     const [chartDataHistorial, setChartDataHistorial] = useState<any>({
         ingresosPorCategoria: { labels: [], datasets: [] },
@@ -195,6 +198,35 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
         const date = new Date(2000, mesIndex, 1); // Ano arbitrário, mês indexado em 0
         return date.toLocaleString('es-ES', { month: 'long' });
     };
+
+    // --- Fetch Current User Session ---
+    useEffect(() => {
+      const fetchUserSession = async () => {
+          setIsSessionLoading(true);
+          try {
+              const { data: { session }, error } = await supabase.auth.getSession();
+              if (error) {
+                  throw error;
+              }
+              if (session?.user) {
+                  setCurrentUserId(session.user.id);
+              } else {
+                  // Handle case where user is not logged in (e.g., redirect to login)
+                  console.error("No active session found.");
+                  toast.error("No se encontró sesión activa. Por favor, inicie sesión.");
+                  // Optionally redirect: navigate('/login'); - Requires importing useNavigate
+              }
+          } catch (error: any) {
+              console.error('Error fetching user session:', error);
+              toast.error(`Error al obtener la sesión: ${error.message}`);
+          } finally {
+              setIsSessionLoading(false);
+          }
+      };
+      fetchUserSession();
+  }, []); // Run once on mount
+
+
 
     // --- Carregamento de Dados Essenciais (Tipos Mov., Pacientes, Médicos) --- 
     useEffect(() => {
@@ -601,121 +633,108 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
     };
 
     const agregarRegistro = async () => {
-        if (!valor || isNaN(parseFloat(valor))) {
-            toast.error('El valor debe ser un número válido.'); return;
-        }
-        if (!tipoMovimientoId) {
-            toast.error('Debe seleccionar una categoría.'); return;
-        }
-        if (!fecha) {
-            toast.error('Debe seleccionar una fecha.'); return;
-        }
+      if (!currentUserId) {
+           toast.error("Error: No se pudo identificar al usuario. Intente recargar la página.");
+           return;
+      }
+      if (!valor || isNaN(parseFloat(valor))) { toast.error('El valor debe ser un número válido.'); return; }
+      if (!tipoMovimientoId) { toast.error('Debe seleccionar una categoría.'); return; }
+      if (!fecha) { toast.error('Debe seleccionar una fecha.'); return; }
 
-        let valorFinal = valorEnSoles;
-        const tipoMov = tiposMovimiento.find(t => t.id === tipoMovimientoId)?.tipo;
+      let valorFinal = valorEnSoles;
+      const tipoMov = tiposMovimiento.find(t => t.id === tipoMovimientoId)?.tipo;
 
-        if (tipoMov === 'Ingreso' && valorFinal < 0) {
-            toast.error('Los ingresos deben ser valores positivos.'); return;
-        }
-        if (tipoMov === 'Egreso' && valorFinal > 0) {
-            valorFinal = -Math.abs(valorFinal);
-        }
-        if (tipoMov === 'Egreso' && valorFinal === 0) {
-             toast.error('Los egresos deben tener un valor.'); return;
-        }
-        // Permitir ajustes zero? Depende da regra de negócio.
-        // if (tipoMov === 'Ajuste' && valorFinal === 0) {
-        //     toast.error('Los ajustes deben tener un valor distinto de cero.'); return;
-        // }
+      if (tipoMov === 'Ingreso' && valorFinal < 0) { toast.error('Los ingresos deben ser valores positivos.'); return; }
+      if (tipoMov === 'Egreso' && valorFinal > 0) { valorFinal = -Math.abs(valorFinal); }
+      if (tipoMov === 'Egreso' && valorFinal === 0) { toast.error('Los egresos deben tener un valor.'); return; }
 
-        // Usar a data selecionada com hora para evitar problemas de fuso
-        const fechaParaGuardar = new Date(fecha + 'T12:00:00'); // Meio-dia local
-        if (isNaN(fechaParaGuardar.getTime())) {
-            toast.error('Fecha no válida.'); return;
-        }
+      const fechaParaGuardar = new Date(fecha + 'T12:00:00');
+      if (isNaN(fechaParaGuardar.getTime())) { toast.error('Fecha no válida.'); return; }
 
-        setIsLoading(true);
-        try {
-            const registroParaGuardar = {
-                fecha: fechaParaGuardar.toISOString(), // Guardar como ISO string
-                tipo_movimiento_id: tipoMovimientoId,
-                descripcion: descripcion.trim() || ' ',
-                valor: valorFinal,
-                numero_factura: numeroFactura.trim() || null,
-                user_id: userId,
-                medico_id: medicoId || null,
-                forma_pago: formaPago,
-                paciente_id: pacienteId || null,
-                moneda: tipoMoneda
-            };
+      setIsLoading(true);
+      try {
+          const registroParaGuardar = {
+              fecha: fechaParaGuardar.toISOString(),
+              tipo_movimiento_id: tipoMovimientoId,
+              descripcion: descripcion.trim() || ' ',
+              valor: valorFinal,
+              numero_factura: numeroFactura.trim() || null,
+              user_id: currentUserId, // Corrected: Use fetched user ID
+              medico_id: medicoId || null,
+              forma_pago: formaPago,
+              paciente_id: pacienteId || null,
+              moneda: tipoMoneda
+          };
 
-            const { data: registroInsertado, error: errorRegistro } = await supabase
-                .from('registros_caja')
-                .insert([registroParaGuardar])
-                .select('id') // Selecionar apenas o ID para a comissão
-                .single();
+          const { data: registroInsertado, error: errorRegistro } = await supabase
+              .from('registros_caja')
+              .insert([registroParaGuardar])
+              .select('id')
+              .single();
 
-            if (errorRegistro) throw errorRegistro;
+          if (errorRegistro) throw errorRegistro;
 
-            let comisionAgregada = false;
-            // Lógica da comissão (apenas para Ingresos com Tarjeta)
-            if (tipoMov === 'Ingreso' && formaPago === 'TARJETA' && valorFinal > 0) {
-                const comisionTarjeta = parseFloat((valorFinal * 0.05).toFixed(2));
-                const ID_CATEGORIA_COMISION = 116; // TODO: Tornar configurável ou buscar dinamicamente
+          let comisionAgregada = false;
+          if (tipoMov === 'Ingreso' && formaPago === 'TARJETA' && valorFinal > 0) {
+              const comisionTarjeta = parseFloat((valorFinal * 0.05).toFixed(2));
+              const ID_CATEGORIA_COMISION = 116; // TODO: Make configurable
 
-                if (comisionTarjeta > 0 && ID_CATEGORIA_COMISION) {
-                    const { error: errorComision } = await supabase
-                        .from('registros_caja')
-                        .insert([{
-                            fecha: fechaParaGuardar.toISOString(),
-                            tipo_movimiento_id: ID_CATEGORIA_COMISION,
-                            descripcion: `Comisión tarjeta (${descripcion ? descripcion.substring(0, 30) + '...' : 'Ingreso'})`,
-                            valor: -comisionTarjeta,
-                            user_id: userId,
-                            medico_id: medicoId || null,
-                            forma_pago: 'TARJETA',
-                            paciente_id: pacienteId || null,
-                            moneda: 'SOLES', // Comissão sempre em SOLES?
-                            // relacionado_con: registroInsertado.id // Se existir campo
-                        }]);
+              if (comisionTarjeta > 0 && ID_CATEGORIA_COMISION) {
+                  const { error: errorComision } = await supabase
+                      .from('registros_caja')
+                      .insert([{
+                          fecha: fechaParaGuardar.toISOString(),
+                          tipo_movimiento_id: ID_CATEGORIA_COMISION,
+                          descripcion: `Comisión tarjeta (${descripcion ? descripcion.substring(0, 30) + '...' : 'Ingreso'})`,
+                          valor: -comisionTarjeta,
+                          user_id: currentUserId, // Corrected: Use fetched user ID
+                          medico_id: medicoId || null,
+                          forma_pago: 'TARJETA',
+                          paciente_id: pacienteId || null,
+                          moneda: 'SOLES',
+                          // relacionado_con: registroInsertado.id // If field exists
+                      }]);
 
-                    if (errorComision) {
-                        console.error('Error al insertar comisión:', errorComision);
-                        toast.error(`Ingreso registrado, pero falló la comisión: ${errorComision.message}`);
-                    } else {
-                        comisionAgregada = true;
-                    }
-                }
-            }
+                  if (errorComision) {
+                      console.error('Error al insertar comisión:', errorComision);
+                      toast.error(`Ingreso registrado, pero falló la comisión: ${errorComision.message}`);
+                  } else {
+                      comisionAgregada = true;
+                  }
+              }
+          }
 
-            if (comisionAgregada) {
-                toast.success('Ingreso y comisión registrados.');
-            } else {
-                toast.success('Registro agregado correctamente.');
-            }
+          if (comisionAgregada) {
+              toast.success('Ingreso y comisión registrados.');
+          } else {
+              toast.success('Registro agregado correctamente.');
+          }
 
-            // Resetar formulário (manter data e tipo/categoria?)
-            setDescripcion('');
-            setValor('');
-            setValorEnSoles(0);
-            setNumeroFactura('');
-            setMedicoId(null);
-            setBusquedaMedico('');
-            setPacienteId(null);
-            setBusquedaPaciente('');
-            setTipoMoneda('SOLES');
-            setFormaPago('EFECTIVO');
-            // Manter tipoMovimiento e tipoMovimientoId pode ser útil
+          // Reset form
+          setDescripcion('');
+          setValor('');
+          setValorEnSoles(0);
+          setNumeroFactura('');
+          setMedicoId(null);
+          setBusquedaMedico('');
+          setPacienteId(null);
+          setBusquedaPaciente('');
+          setTipoMoneda('SOLES');
+          setFormaPago('EFECTIVO');
 
-            cargarRegistros(fecha); // Recarregar registros do dia
+          cargarRegistros(fecha, currentUserId); // Reload daily records
 
-        } catch (error: any) {
-            console.error('Error agregando registro:', error);
-            toast.error(`Error al agregar registro: ${error.message}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      } catch (error: any) {
+          console.error('Error agregando registro:', error);
+          if (error.message?.includes('violates not-null constraint') && error.message?.includes('"user_id"')) {
+               toast.error('Error: Falta el ID de usuario al guardar. Intente recargar.');
+          } else {
+               toast.error(`Error al agregar registro: ${error.message}`);
+          }
+      } finally {
+          setIsLoading(false);
+      }
+  };
 
     const eliminarRegistro = async (id: string) => {
         if (!id) { toast.error('ID inválido.'); return; }

@@ -132,7 +132,7 @@ export default function HomePage({ user }: HomePageProps) {
               </div>
               <nav className="flex flex-col space-y-1">
                 <button onClick={() => { setActiveTab('caja'); setIsMobileMenuOpen(false); }} className="w-full text-left text-white text-sm px-3 py-2 rounded-md hover:bg-[#801461]">
-                💰 Caja
+                  💰 Caja
                 </button>
                 <button onClick={() => { setActiveTab('pacientes'); setIsMobileMenuOpen(false); }} className="w-full text-left text-white text-sm px-3 py-2 rounded-md hover:bg-[#801461]">
                  🧍Pacientes
@@ -166,3 +166,13 @@ export default function HomePage({ user }: HomePageProps) {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+

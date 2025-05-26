@@ -3,12 +3,15 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 import MolarIcon from '../components/ui/MolarIcon';
 import { Eye, EyeOff } from 'lucide-react'; // Ícones de olho
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,8 +24,13 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
+      // Redirigir a la página de caja después del login
+      navigate('/caja');
+
+      // No toast on success, let App.tsx handle navigation
     } catch (error) {
       console.error('Error signing in:', error);
+      // Provide more specific error messages if possible
       const errorMessage = (error instanceof Error && error.message.includes('Invalid login credentials'))
         ? 'Credenciales inválidas. Verifique su correo y contraseña.'
         : 'Error al iniciar sesión. Intente nuevamente.';
