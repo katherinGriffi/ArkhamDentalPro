@@ -19,5 +19,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  server: {
+    host: true, // Permite acesso externo
+    allowedHosts: ['5173-i5153qq5abti9phokyudk-cd8c5332.manusvm.computer'] // Adiciona o host público permitido
   }
 });

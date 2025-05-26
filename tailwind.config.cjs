@@ -1,20 +1,21 @@
+/** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {theme: {
+  theme: {
     extend: {
-      colors: { // 👈 Añade esta sección
+      colors: {
         raspberry: {
-          50: '#fdf2f8',  // Opcional: versión más clara
-          100: '#f8f1f6', // Tu colorSecondary
-          500: '#801461', // Tu colorPrimary
-          700: '#5d0e45', // Tu colorPrimaryDark
-          900: '#3a0934'  // Opcional: versión más oscura
+          50:  '#ffe7f3',   // claro pero más vivo
+          100: '#ffc4e0',   // rosa fuerte, aún profesional
+          500: '#b0005a',   // magenta intenso y dominante
+          700: '#8b0046',   // tono profundo con fuerza visual
+          900: '#4c0026'    // muy oscuro, casi vino, ideal para fondo o énfasis
         }
       }
-    }}
+    }
   },
   plugins: [],
-}
+} 
