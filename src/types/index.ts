@@ -15,6 +15,17 @@ export interface Medico {
   porcentaje_comision?: number;
 }
 
+export interface Event {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime: string; timeZone: string; };
+  end: { dateTime: string; timeZone: string; };
+  paciente?: { id: string; nombre: string; celular: string; email: string; };
+  medico?: { id: string; nombre: string; };
+  colorId?: string;
+}
+
 export interface Paciente {
   id: number;
   dni: string;
@@ -49,6 +60,9 @@ export interface RegistroCaja {
     id: number;
     nombre: string;
     tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
+  };
+  categoria?: {
+    nombre: string;
   };
   descripcion: string;
   valor: number;

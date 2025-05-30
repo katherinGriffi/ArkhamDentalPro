@@ -1,178 +1,322 @@
+// src/pages/HomePage.tsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import MolarIcon from '../components/ui/MolarIcon';
-import MiCaja from '../features/cashbox/MiCaja';
-import GestionPaciente from '../features/patients/GestionPaciente';
-import GestionDoctores from '../features/doctors/GestionDoctores';
-import { User } from '../App';
-import { LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
-const colorPrimary = '#801461';
-const colorSecondary = '#5A0D45';
+// Importa los componentes necesarios de react-router-dom
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+
+// Importa los iconos de lucide-react (asegúrate de que estén instalados)
+import { LogOut, Stethoscope, ClipboardList, Menu, X, DollarSign, Users, CalendarDays, BarChart4 } from 'lucide-react';
+
+interface User {
+    id: string;
+    nombre: string;
+    apellido?: string;
+    email?: string;
+}
 
 interface HomePageProps {
-  user: User | null;
+    user: User | null;
+    session: any;
 }
 
-export default function HomePage({ user }: HomePageProps) {
-  const [activeTab, setActiveTab] = useState('caja');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
+export default function HomePage({ user, session }: HomePageProps) {
+    const [currentTime, setCurrentTime] = useState(new Date());
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const navigate = useNavigate();
+    const location = useLocation();
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
+    // Effect to update time every minute
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 60000); // Update every minute
+        return () => clearInterval(timer);
+    }, []);
 
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing out:', error);
+    // Effect to handle redirection if no session
+    useEffect(() => {
+        if (!session) {
+            navigate('/login', { replace: true });
+        }
+    }, [session, navigate]);
+
+    // Manejador de cierre de sesión
+    const handleLogout = async () => {
+        try {
+            const { error } = await supabase.auth.signOut();
+            if (error) throw error;
+            toast.success('Sesión cerrada exitosamente.');
+            navigate('/login'); // Redirige a la página de login
+        } catch (error) {
+            console.error('Error signing out:', error);
+            toast.error('Error al cerrar sesión.');
+        }
+    };
+
+    // Show loading spinner if user data is not yet available
+    if (!user) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-raspberry-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-raspberry-700"></div>
+                <p className="ml-4 text-lg font-semibold text-raspberry-700">Cargando datos de usuario...</p>
+            </div>
+        );
     }
-  };
 
-  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F0E6ED] via-white to-[#F8F5F7]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#801461]"></div>
-      </div>
+        <div className="min-h-screen flex flex-col bg-raspberry-50 font-sans antialiased">
+            {/* Main Navigation Bar */}
+            <nav className="bg-gradient-to-r from-raspberry-700 to-raspberry-900 shadow-2xl sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between h-16 items-center">
+                        {/* Logo and Clinic Name */}
+                        <div className="flex items-center flex-shrink-0">
+                            <NavLink to="/caja" className="flex items-center group">
+                                <div className="p-1.5 bg-raspberry-600 rounded-full shadow-md transition-all duration-300 group-hover:scale-110 group-hover:ring-2 group-hover:ring-white group-hover:ring-opacity-50">
+                                    <MolarIcon className="h-8 w-8 text-white" />
+                                </div>
+                                <span className="ml-1 text-xl font-bold text-white tracking-wide hidden md:block">Andrew's Dental Group</span>
+                                <span className="ml-1 text-xl font-bold text-white md:hidden">Andrew's</span>
+                            </NavLink>
+                        </div>
+
+                        {/* Desktop Navigation Menu (Tabs) */}
+                        <div className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6 mx-8">
+                        <NavLink
+                                to="/citas" // Assuming a /citas route
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                    flex items-center justify-center
+                                    ${isActive
+                                        ? 'bg-white text-raspberry-700 shadow-md font-bold'
+                                        : 'text-white hover:bg-white hover:bg-opacity-20'
+                                    }`
+                                }
+                            >
+                                <CalendarDays className="w-4 h-4 mr-2" /> Citas
+                            </NavLink>
+                            <NavLink
+                                to="/pacientes"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                    flex items-center justify-center
+                                    ${isActive
+                                        ? 'bg-white text-raspberry-700 shadow-md font-bold'
+                                        : 'text-white hover:bg-white hover:bg-opacity-20'
+                                    }`
+                                }
+                            >
+                                <Users className="w-4 h-4 mr-2" /> Pacientes
+                            </NavLink>
+                            <NavLink
+                                to="/historial-clinico"
+                                className={({ isActive }) => {
+                                    const isHistorialActive = location.pathname.startsWith('/historial-clinico');
+                                    return `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                        flex items-center justify-center
+                                        ${isHistorialActive
+                                            ? 'bg-white text-raspberry-700 shadow-md font-bold'
+                                            : 'text-white hover:bg-white hover:bg-opacity-20'
+                                        }`;
+                                }}
+                            >
+                                <ClipboardList className="w-4 h-4 mr-2" /> Historial Clínico
+                            </NavLink>
+                            <NavLink
+                                to="/doctores"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                    flex items-center justify-center
+                                    ${isActive
+                                        ? 'bg-white text-raspberry-700 shadow-md font-bold'
+                                        : 'text-white hover:bg-white hover:bg-opacity-20'
+                                    }`
+                                }
+                            >
+                                <Stethoscope className="w-4 h-4 mr-2" /> Doctores
+                            </NavLink>
+                            <NavLink
+                                to="/caja"
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                    flex items-center justify-center
+                                    ${isActive || location.pathname === '/' // Also active for root
+                                        ? 'bg-white text-raspberry-700 shadow-md font-bold' // ACTIVE: White background, raspberry text, bold, shadow
+                                        : 'text-white hover:bg-white hover:bg-opacity-20' // INACTIVE: White text, subtle white overlay on hover
+                                    }`
+                                }
+                            >
+                                <DollarSign className="w-4 h-4 mr-2" /> Caja
+                            </NavLink>
+                                                       
+                            
+                            {/* Example of new links for further consistency */}
+                            
+                            <NavLink
+                                to="/reportes" // Assuming a /reportes route
+                                className={({ isActive }) =>
+                                    `px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap
+                                    flex items-center justify-center
+                                    ${isActive
+                                        ? 'bg-white text-raspberry-700 shadow-md font-bold'
+                                        : 'text-white hover:bg-white hover:bg-opacity-20'
+                                    }`
+                                }
+                            >
+                                <BarChart4 className="w-4 h-4 mr-2" /> Reportes
+                            </NavLink>
+                        </div>
+
+                        {/* User Info and Logout Button (Desktop) */}
+                        <div className="hidden md:flex items-center space-x-4 lg:space-x-6 text-white ml-auto flex-shrink-0">
+                            <div className="text-right flex flex-col items-end">
+                                <p className="text-sm font-medium whitespace-nowrap">Bienvenido!! <span className="font-semibold">{user?.nombre} {user?.apellido}</span></p>
+                                <p className="text-xs text-raspberry-50 whitespace-nowrap">
+                                    {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} · {currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-1 px-4 py-2 text-sm font-bold text-raspberry-700 bg-white rounded-md hover:bg-raspberry-100 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-0 focus:ring-raspberry-700 transform hover:scale-105 shadow-md"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Cerrar Sesión
+                            </button>
+                        </div>
+
+                        {/* Mobile Menu Button (Hamburger) */}
+                        <div className="flex md:hidden items-center flex-shrink-0">
+                            <button
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-raspberry-50 hover:bg-raspberry-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+                                aria-expanded={isMobileMenuOpen ? "true" : "false"}
+                                aria-label="Abrir menú principal"
+                            >
+                                <span className="sr-only">Abrir menú principal</span>
+                                {isMobileMenuOpen ? (
+                                    <X className="block h-6 w-6" aria-hidden="true" />
+                                ) : (
+                                    <Menu className="block h-6 w-6" aria-hidden="true" />
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Menu Dropdown - ADJUSTED */}
+                {/* We remove fixed/absolute positioning here and let it flow as block content below the nav */}
+                <div
+                    className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMobileMenuOpen ? 'max-h-screen' : 'max-h-0'
+                        } bg-raspberry-900 shadow-lg`} // Removed rounded-b-lg to avoid breaking animation
+                >
+                    <div className="pt-2 pb-4 space-y-2 px-4"> {/* Increased pb-4 for more padding */}
+                        {/* User info on mobile */}
+                        <div className="text-white text-sm py-2 border-b border-raspberry-800 mb-2">
+                            <p className="font-semibold">{user?.nombre} {user?.apellido}</p>
+                            <p className="text-xs text-raspberry-50">{currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                        {/* Mobile Navigation with NavLink */}
+                        <nav className="flex flex-col space-y-1">
+                        <NavLink
+                                to="/citas" // New example link
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                        ${isActive
+                                        ? 'bg-raspberry-700 text-white shadow-inner'
+                                        : 'text-white hover:bg-raspberry-800'}`
+                                }
+                            >
+                                <CalendarDays className="w-4 h-4 mr-2" /> Citas
+                            </NavLink>
+                            
+                            <NavLink
+                                to="/pacientes"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                        ${isActive
+                                        ? 'bg-raspberry-700 text-white shadow-inner'
+                                        : 'text-white hover:bg-raspberry-800'}`
+                                }
+                            >
+                                <Users className="w-4 h-4 mr-2" /> Pacientes
+                            </NavLink>
+                            
+                            <NavLink
+                                to="/historial-clinico"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={() => {
+                                    const isHistorialActive = location.pathname.startsWith('/historial-clinico');
+                                    return `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                            ${isHistorialActive
+                                            ? 'bg-raspberry-700 text-white shadow-inner'
+                                            : 'text-white hover:bg-raspberry-800'}`;
+                                }}
+                            >
+                                <ClipboardList className="w-4 h-4 mr-2" /> Historial Clínico
+                            </NavLink>
+                            <NavLink
+                                to="/doctores"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                        ${isActive
+                                        ? 'bg-raspberry-700 text-white shadow-inner'
+                                        : 'text-white hover:bg-raspberry-800'}`
+                                }
+                            >
+                                <Stethoscope className="w-4 h-4 mr-2" /> Doctores
+                            </NavLink>
+                            <NavLink
+                                to="/caja"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                        ${isActive || location.pathname === '/' // Also active for root
+                                        ? 'bg-raspberry-700 text-white shadow-inner' // Active state for mobile
+                                        : 'text-white hover:bg-raspberry-800'}`
+                                }
+                            >
+                                <DollarSign className="w-4 h-4 mr-2" /> Caja
+                            </NavLink>
+                            
+                            <NavLink
+                                to="/reportes" // New example link
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className={({ isActive }) =>
+                                    `w-full text-left text-sm px-4 py-3 rounded-md transition-colors duration-200 flex items-center font-medium
+                                        ${isActive
+                                        ? 'bg-raspberry-700 text-white shadow-inner'
+                                        : 'text-white hover:bg-raspberry-800'}`
+                                }
+                            >
+                                <BarChart4 className="w-4 h-4 mr-2" /> Reportes
+                            </NavLink>
+                        </nav>
+                        {/* Mobile Logout Button */}
+                        <button
+                            onClick={handleLogout}
+                            className="w-full mt-4 px-4 py-3 text-sm font-bold text-raspberry-700 rounded-md bg-white hover:bg-raspberry-100 transition-colors duration-300 shadow-md flex items-center justify-center"
+                        >
+                            <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            {/* Main content that will change with nested routes */}
+            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex-grow w-full">
+                <Outlet />
+            </main>
+
+            {/* Footer */}
+            <footer className="bg-gray-100 text-gray-600 text-center p-4 text-xs mt-auto">
+                © {new Date().getFullYear()} Arkham Tech. Todos los derechos reservados.
+            </footer>
+        </div>
     );
-  }
-
-  const TabButton = ({ tabId, label, icon }: { tabId: string; label: string; icon: JSX.Element }) => (
-    <button
-      onClick={() => setActiveTab(tabId)}
-      className={`flex items-center whitespace-nowrap py-4 px-4 sm:px-6 border-b-2 font-medium text-sm transition-all duration-300 transform hover:-translate-y-0.5 ${
-        activeTab === tabId
-          ? `border-[${colorPrimary}] text-[${colorPrimary}] shadow-inner bg-white`
-          : `border-transparent text-gray-500 hover:text-[${colorSecondary}] hover:border-gray-300`
-      }`}
-    >
-      {icon}
-      <span className="ml-2">{label}</span>
-    </button>
-  );
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'caja':
-        return <MiCaja user={user} />;
-      case 'pacientes':
-        return <GestionPaciente user={user} />;
-      case 'doctores':
-        return <GestionDoctores user={user} />;
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F8F5F7] to-white">
-      <nav className="bg-gradient-to-r from-[#801461] to-[#5A0D45] shadow-lg sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <div className="p-1 bg-white rounded-full">
-                <MolarIcon className="h-8 w-8" stroke={colorPrimary} />
-              </div>
-              <span className="ml-3 text-xl font-bold text-white hidden md:block">Andrew's Dental Group</span>
-              <span className="ml-3 text-xl font-bold text-white md:hidden">ADG</span>
-            </div>
-            <div className="flex md:hidden items-center">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-[#9D1C7A] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-              >
-                <span className="sr-only">Abrir menu</span>
-                {isMobileMenuOpen ? (
-                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-              </button>
-            </div>
-            <div className="hidden md:flex items-center justify-end w-full px-6 py-2 space-x-6 text-white">
-              <div className="text-right">
-                <p className="text-sm font-semibold">Bienvenido!! <span className="font-normal">{user?.nombre}</span></p>
-                <p className="text-xs opacity-80">
-                  {new Date().toLocaleDateString('es-ES', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                  })} · {currentTime.toLocaleTimeString('es-ES', {
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                </p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-[#801461] bg-white rounded-md hover:bg-[#F0E6ED] transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#801461] transform hover:scale-105 shadow-sm"
-              >
-                <LogOut className="w-4 h-4" />
-                Cerrar Sesión
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-[#6a1152] shadow-lg rounded-b-lg absolute w-full z-30">
-            <div className="pt-2 pb-3 space-y-2 px-4">
-              <div className="text-white text-sm py-2 border-b border-[#9D1C7A]">
-                <p className="font-medium">{user?.nombre} {user?.apellido}</p>
-                <p className="text-xs opacity-80">{currentTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
-              </div>
-              <nav className="flex flex-col space-y-1">
-                <button onClick={() => { setActiveTab('caja'); setIsMobileMenuOpen(false); }} className="w-full text-left text-white text-sm px-3 py-2 rounded-md hover:bg-[#801461]">
-                  💰 Caja
-                </button>
-                <button onClick={() => { setActiveTab('pacientes'); setIsMobileMenuOpen(false); }} className="w-full text-left text-white text-sm px-3 py-2 rounded-md hover:bg-[#801461]">
-                 🧍Pacientes
-                </button>
-                <button onClick={() => { setActiveTab('doctores'); setIsMobileMenuOpen(false); }} className="w-full text-left text-white text-sm px-3 py-2 rounded-md hover:bg-[#801461]">
-                  👨‍⚕️ Doctores
-                </button>
-              </nav>
-              <button onClick={handleLogout} className="w-full mt-3 px-4 py-2 text-sm font-medium text-[#801461] rounded-md bg-white hover:bg-[#F0E6ED] transition-colors duration-300">
-                Cerrar Sesión
-              </button>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-xl rounded-lg overflow-hidden border border-[#E0CDD9]">
-          <div className="border-b border-gray-200 bg-[#F8F5F7]">
-            <div className="overflow-x-auto scrollbar-hide">
-              <nav className="-mb-px flex justify-center sm:justify-start px-4">
-              <TabButton tabId="caja" label="Caja" icon={<span>💰</span>} />
-                <TabButton tabId="pacientes" label="Pacientes" icon={<span>🧍</span>} />
-                <TabButton tabId="doctores" label="Doctores" icon={<span>👨‍⚕️</span>} />
-              </nav>
-            </div>
-          </div>
-          <div className="p-6">{renderContent()}</div>
-        </div>
-      </div>
-    </div>
-  );
 }
-
-
-
-
-
-
-
-
-
-

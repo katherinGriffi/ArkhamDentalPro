@@ -15,7 +15,7 @@
   "dependencies": {
     "@headlessui/react": "^2.0.0",
     "@radix-ui/react-tabs": "^1.0.0",
-    "@supabase/supabase-js": "^2.0.0",
+    "@supabase/supabase-js": "^2.49.8",
     "chart.js": "^4.0.0",
     "lucide-react": "^0.344.0",
     "moment": "^2.0.0",

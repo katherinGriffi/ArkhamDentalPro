@@ -3,15 +3,14 @@ import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 import MolarIcon from '../components/ui/MolarIcon';
 import { Eye, EyeOff } from 'lucide-react'; // Ícones de olho
-import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
+  // REMOVIDO: useNavigate hook ya no es necesario aquí
+  // const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,13 +23,13 @@ export default function LoginPage() {
       });
 
       if (error) throw error;
-      // Redirigir a la página de caja después del login
-      navigate('/caja');
+     
+      // Opcional: Podrías añadir un toast de éxito aquí si quieres feedback INMEDIATO,
+      // pero la redirección lo hará desaparecer rápido. Generalmente no se pone aquí.
+      // toast.success('¡Inicio de sesión exitoso!');
 
-      // No toast on success, let App.tsx handle navigation
     } catch (error) {
-      console.error('Error signing in:', error);
-      // Provide more specific error messages if possible
+        console.error('Error signing in:', error);
       const errorMessage = (error instanceof Error && error.message.includes('Invalid login credentials'))
         ? 'Credenciales inválidas. Verifique su correo y contraseña.'
         : 'Error al iniciar sesión. Intente nuevamente.';
@@ -41,13 +40,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#F0E6ED] via-white to-[#F8F5F7] p-4">
-      <div className="max-w-md w-full bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border border-[#E0CDD9] transform transition-all duration-500 hover:scale-[1.01]">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-raspberry-50 via-white to-raspberry-50 p-4"> {/* Usar clases Tailwind */}
+      <div className="max-w-md w-full bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border border-raspberry-100 transform transition-all duration-500 hover:scale-[1.01]"> {/* Usar clases Tailwind */}
         <div className="flex flex-col items-center mb-8">
-          <div className="p-3 bg-gradient-to-br from-[#9D1C7A] to-[#6a1152] rounded-full shadow-lg mb-4 transform transition-transform duration-300 hover:rotate-6">
+          <div className="p-3 bg-gradient-to-br from-raspberry-500 to-raspberry-700 rounded-full shadow-lg mb-4 transform transition-transform duration-300 hover:rotate-6"> {/* Usar clases Tailwind */}
             <MolarIcon className="h-16 w-16 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-center text-[#5A0D45]">
+          <h1 className="text-3xl font-bold text-center text-raspberry-900"> {/* Usar clase Tailwind */}
             Andrew's Dental Group
           </h1>
           <p className="mt-2 text-center text-sm text-gray-500">
@@ -56,7 +55,7 @@ export default function LoginPage() {
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="email-address" className="block text-sm font-medium text-[#801461] mb-1">
+            <label htmlFor="email-address" className="block text-sm font-medium text-raspberry-700 mb-1"> {/* Usar clase Tailwind */}
               Correo Electrónico
             </label>
             <input
@@ -67,12 +66,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="appearance-none relative block w-full px-4 py-3 border border-[#E0CDD9] placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B58AAD] focus:border-[#801461] sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+              className="appearance-none relative block w-full px-4 py-3 border border-raspberry-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-raspberry-200 focus:border-raspberry-700 sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md" 
               placeholder="su.correo@ejemplo.com"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-[#801461] mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-raspberry-700 mb-1"> {/* Usar clase Tailwind */}
               Contraseña
             </label>
             <div className="relative">
@@ -84,7 +83,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none relative block w-full px-4 py-3 border border-[#E0CDD9] placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#B58AAD] focus:border-[#801461] sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md pr-12"
+                className="appearance-none relative block w-full px-4 py-3 border border-raspberry-100 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-raspberry-200 focus:border-raspberry-700 sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md pr-12" 
                 placeholder="••••••••"
               />
               <button
@@ -101,7 +100,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-[#9D1C7A] to-[#801461] hover:from-[#801461] hover:to-[#6a1152] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#801461] transition-all duration-300 transform hover:scale-[1.03] shadow-lg hover:shadow-xl ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full flex justify-center py-3 px-4 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-raspberry-500 to-raspberry-700 hover:from-raspberry-700 hover:to-raspberry-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-raspberry-700 transition-all duration-300 transform hover:scale-[1.03] shadow-lg hover:shadow-xl ${loading ? 'opacity-70 cursor-not-allowed' : ''}`} 
             >
               {loading ? (
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -123,7 +122,7 @@ export default function LoginPage() {
           href="https://grupoarkham.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#801461] hover:underline font-semibold"
+          className="text-raspberry-700 hover:underline font-semibold"
         >
           Arkham Tech
         </a>
@@ -131,3 +130,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

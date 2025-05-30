@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '../../lib/supabase'; // Ajuste o caminho conforme necessário
+import { supabase } from '../lib/supabase'; // Ajuste o caminho conforme necessário
 import { toast } from 'react-hot-toast';
-import {    Chart as ChartJS,    CategoryScale,    LinearScale,    PointElement,    LineElement,    ArcElement,    Title,    Tooltip,    Legend,    Filler, // Importar iller para preenchimento de área em gráficos de linha
+import {    Chart as ChartJS,    CategoryScale,    LinearScale,    PointElement,    LineElement,    ArcElement,    Title,    Tooltip,    Legend,    Filler // Importar iller para preenchimento de área em gráficos de linha
 } from 'chart.js';
 import { Line, Pie } from 'react-chartjs-2';
-import { RegistroCaja, TipoMovimiento, Medico, Paciente, HistorialMes, HistorialAno } from '../types/index';
+import { RegistroCaja, TipoMovimiento, Medico, Paciente } from '../types/index';
 
 
 // Registrar os componentes do Chart.js
@@ -12,27 +12,12 @@ ChartJS.register(    CategoryScale,    LinearScale,    PointElement,    LineElem
 );
 
 // --- Tipos (Simplificados - Substitua pelos seus tipos reais) ---
-interface RegistroCaja {
-  id: string;  // Changed from number to string
-  fecha: string;
-  tipo_movimiento_id: number;
-  tipo_movimiento?: {
-    id: number;
-    nombre: string;
-    tipo: 'Ingreso' | 'Egreso' | 'Ajuste';
-  };
-  descripcion: string;
-  valor: number;
-  numero_factura?: string;
-  user_id: string;  // Changed from number to string
-  created_at: string;
-  usuario?: {
-    nombre: string;
-  };
-  paciente?: Paciente;
-  medico?: Medico;
-  forma_pago?: 'EFECTIVO' | 'TARJETA' | 'TRANSFERENCIA' | 'YAPE' | 'PLIN' | 'OTROS';
+interface Category {
+  label: string;
+  value: number;
+  percentage: number;
 }
+
 interface TipoMovimiento {
   id: number;
   nombre: string;
@@ -74,14 +59,15 @@ interface Paciente {
   historial_dental?: string;
   activo: boolean;
 }
-type User  ={
+
+type User = {
   id: string;
   nombre: string;
-  apellido: string; 
-  
+  apellido: string;
   activo?: boolean;
   role?: string;
 }
+
 // Estrutura para o histórico filtrado
 interface HistorialData {
     anos: {
@@ -100,7 +86,7 @@ interface HistorialData {
 // Props do componente
 interface MiCajaProps {
     userId: string;
-    userRole: 'admin' | 'user'; // Adicionado userRole
+    userRole: 'admin' | 'user';
 }
 
 // --- Componente Principal ---
@@ -247,14 +233,19 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                 }
 
                 if (pacientesData.error) throw pacientesData.error;
-                const pacientesTransformados = (pacientesData.data || []).map(p => ({
+                const pacientesTransformados = (pacientesData.data || []).map((p: { id: number; nombres: string; apellido_paterno: string; apellido_materno?: string; sexo?: 'M' | 'F' | 'O' }) => ({
                     ...p,
-                    nombre: `${p.nombres || ''} ${p.apellido_paterno || ''} ${p.apellido_materno || ''}`.trim()
+                    nombre: `${p.nombres || ''} ${p.apellido_paterno || ''} ${p.apellido_materno || ''}`.trim(),
+                    sexo: p.sexo || 'O' as const,
+                    activo: true
                 }));
                 setPacientes(pacientesTransformados);
 
                 if (medicosData.error) throw medicosData.error;
-                setMedicos(medicosData.data || []);
+                setMedicos((medicosData.data || []).map(med => ({
+                    ...med,
+                    activo: true  // Set default value for required property
+                })));
 
             } catch (error) {
                 console.error("Error al cargar datos esenciales:", error);
@@ -413,6 +404,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
               tipo_movimiento: reg.tipo_movimiento || undefined,
               usuario: reg.usuario || undefined,
               medico: reg.medico || undefined,
+              categoria: reg.categoria || undefined,
               paciente: reg.paciente ? { 
                   ...reg.paciente, 
                   nombreCompleto: `${reg.paciente.nombres || ''} ${reg.paciente.apellido_paterno || ''} ${reg.paciente.apellido_materno || ''}`.trim() 
@@ -722,7 +714,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
           setTipoMoneda('SOLES');
           setFormaPago('EFECTIVO');
 
-          cargarRegistros(fecha, currentUserId); // Reload daily records
+          cargarRegistros(fecha); // Reload daily records
 
       } catch (error: any) {
           console.error('Error agregando registro:', error);
@@ -779,23 +771,34 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
             const fetchFilterOptions = async () => {
                 try {
                     const [usersData, catsData, medsData, pacsData] = await Promise.all([
-                        supabase.from('users').select('id, nombre'), // Assumindo tabela 'users'
+                        supabase.from('users').select('id, nombre, apellido'), // Assumindo tabela 'users'
                         supabase.from('tipos_movimiento').select('id, nombre, tipo').eq('activo', true),
                         supabase.from('medicos').select('id, nombre').eq('activo', true),
                         supabase.from('pacientes').select('id, nombres, apellido_paterno').eq('activo', true)
                     ]);
 
                     if (usersData.error) throw usersData.error;
-                    setUsuarios(usersData.data || []);
+                    setUsuarios((usersData.data || []).map(user => ({
+                        ...user,
+                        apellido: user.apellido || ''  // Add default empty string for apellido
+                    })));
 
                     if (catsData.error) throw catsData.error;
                     setCategorias(catsData.data || []);
 
                     if (medsData.error) throw medsData.error;
-                    setMedicosFiltro(medsData.data || []);
+                    setMedicosFiltro((medsData.data || []).map(med => ({
+                        ...med,
+                        activo: true  // Set default value for required property
+                    })));
 
                     if (pacsData.error) throw pacsData.error;
-                    const pacsFormatados = (pacsData.data || []).map(p => ({ ...p, nombreCompleto: `${p.nombres} ${p.apellido_paterno}`.trim() }));
+                    const pacsFormatados = (pacsData.data || []).map((p: { id: number; nombres: string; apellido_paterno: string; sexo?: 'M' | 'F' | 'O' }) => ({ 
+                        ...p, 
+                        nombreCompleto: `${p.nombres} ${p.apellido_paterno}`.trim(),
+                        sexo: p.sexo || 'O' as const,
+                        activo: true
+                    }));
                     setPacientesFiltro(pacsFormatados);
 
                 } catch (error: any) {
@@ -879,7 +882,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                         <select id="pacienteFiltro" value={pacienteFiltro} onChange={(e) => setPacienteFiltro(e.target.value)}
                             className="w-full text-sm rounded-md border-gray-300 shadow-sm p-2 border focus:ring-raspberry-500 focus:border-raspberry-500 bg-white">
                             <option value="">Todos</option>
-                            {pacientesFiltro.map((p) => <option key={p.id} value={p.id}>{p.nombreCompleto}</option>)}
+                            {pacientesFiltro.map((p) => <option key={p.id} value={p.id}>{p.nombres} {p.apellido_paterno} {p.apellido_materno}</option>)}
                         </select>
                     </div>
                     {/* Médico */} 
@@ -1047,12 +1050,12 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                       onChange={(e) => { setBusquedaPaciente(e.target.value); setQueryPaciente(e.target.value); setShowPacienteDropdown(true); if (!e.target.value) setPacienteId(null); }}
                                       onFocus={() => setShowPacienteDropdown(true)} onBlur={() => setTimeout(() => setShowPacienteDropdown(false), 150)}
                                       className="w-full text-sm rounded-md border-gray-300 shadow-sm p-2 border focus:ring-raspberry-500 focus:border-raspberry-500" />
-                                  {showPacienteDropdown && pacientes.filter(p => p.nombre.toLowerCase().includes(queryPaciente.toLowerCase())).length > 0 && (
+                                  {showPacienteDropdown && pacientes.filter(p => p.nombres.toLowerCase().includes(queryPaciente.toLowerCase())).length > 0 && (
                                       <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-40 overflow-y-auto">
-                                          {pacientes.filter(p => p.nombre.toLowerCase().includes(queryPaciente.toLowerCase())).slice(0, 10).map(pac => (
+                                          {pacientes.filter(p => p.nombres.toLowerCase().includes(queryPaciente.toLowerCase())).slice(0, 10).map(pac => (
                                               <li key={pac.id} className="px-3 py-1.5 text-sm hover:bg-raspberry-50 cursor-pointer"
-                                                  onMouseDown={() => { setPacienteId(pac.id); setBusquedaPaciente(pac.nombre); setQueryPaciente(pac.nombre); setShowPacienteDropdown(false); }}>
-                                                  {pac.nombre}
+                                                  onMouseDown={() => { setPacienteId(String(pac.id)); setBusquedaPaciente(pac.nombres); setQueryPaciente(pac.nombres); setShowPacienteDropdown(false); }}>
+                                                  {pac.nombres} {pac.apellido_paterno} {pac.apellido_materno}
                                               </li>
                                           ))}
                                       </ul>
@@ -1275,9 +1278,9 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                         callbacks: {
                                           label: function(context) {
                                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const value = context.raw;
+                                            const value = context.raw as number;
                                             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                            return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
+                                            return `${context.label}: S/.${value.toLocaleString()} (${percentage}%)`;
                                           }
                                         }
                                       }
@@ -1301,27 +1304,28 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                       const data = chartDataHistorial.ingresosPorCategoria;
                                       const labels = data.labels || [];
                                       const values = data.datasets[0].data || [];
-                                      const total = values.reduce((sum, value) => sum + value, 0);
+                                      const total = values.reduce((sum: number, value: number) => sum + value, 0);
 
-                                      const categories = labels.map((label, index) => ({
+                                      type Category = { label: string; value: number; percentage: number };
+                                      const categories = labels.map((label: string, index: number) => ({
                                         label,
                                         value: values[index],
-                                        percentage: total > 0 ? (values[index] / total) * 100 : 0,
-                                      })).sort((a, b) => b.value - a.value);
+                                        percentage: total > 0 ? (values[index] / total) * 100 : 0
+                                      })).sort((a: Category, b: Category) => b.value - a.value);
 
                                       return (
                                         <>
-                                          {categories.map((cat, i) => (
+                                          {categories.map((cat: Category, i: number) => (
                                             <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                               <td className="px-4 py-2 font-medium text-gray-700">{cat.label}</td>
-                                              <td className="px-4 py-2 text-right">${cat.value.toLocaleString()}</td>
+                                              <td className="px-4 py-2 text-right">S/.{cat.value.toLocaleString()}</td>
                                               <td className="px-4 py-2 text-right">{cat.percentage.toFixed(1)}%</td>
                                             </tr>
                                           ))}
                                           {total > 0 && (
                                             <tr className="bg-green-50 font-semibold text-green-800">
                                               <td className="px-4 py-2">Total Ingresos</td>
-                                              <td className="px-4 py-2 text-right">${total.toLocaleString()}</td>
+                                              <td className="px-4 py-2 text-right">S/.{total.toLocaleString()}</td>
                                               <td className="px-4 py-2 text-right">100%</td>
                                             </tr>
                                           )}
@@ -1340,28 +1344,29 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                     const data = chartDataHistorial.ingresosPorCategoria;
                                     const labels = data.labels || [];
                                     const values = data.datasets[0].data || [];
-                                    const total = values.reduce((sum, value) => sum + value, 0);
+                                    const total = values.reduce((sum: number, value: number) => sum + value, 0);
 
                                     if (total === 0) return <li>No hay datos para generar insights.</li>;
 
-                                    const categories = labels.map((label, i) => ({
+                                    type Category = { label: string; value: number; percentage: number };
+                                    const categories = labels.map((label: string, index: number) => ({
                                       label,
-                                      value: values[i],
-                                      percentage: total > 0 ? (values[i] / total) * 100 : 0
-                                    })).sort((a, b) => b.value - a.value);
+                                      value: values[index],
+                                      percentage: total > 0 ? (values[index] / total) * 100 : 0
+                                    })).sort((a: Category, b: Category) => b.value - a.value);
 
                                     const insights = [];
 
                                     // Categoría principal
                                     if (categories.length > 0) {
-                                      insights.push(`✅ La categoría principal es **${categories[0].label}**, aportando el ${categories[0].percentage.toFixed(1)}% del total ($${categories[0].value.toLocaleString()}).`);
+                                      insights.push(`✅ La categoría principal es **${categories[0].label}**, aportando el  ${categories[0].percentage.toFixed(1)}% del total (S/.${categories[0].value.toLocaleString()}).`);
                                     }
 
                                     // Diversificación
                                     if (categories.length >= 3) {
-                                        const topPercent = categories.slice(0, 3).reduce((acc, cat) => acc + cat.percentage, 0);
+                                        const topPercent = categories.slice(0, 3).reduce((acc: number, cat: Category) => acc + cat.percentage, 0);
                                         if (topPercent > 80) {
-                                          insights.push(`⚠️ Más del 80% de los ingresos (${topPercent.toFixed(1)}%) proviene de solo **${categories.slice(0, 3).map(c => c.label).join(', ')}**. Considera diversificar.`);
+                                          insights.push(`⚠️ Más del 80% de los ingresos (${topPercent.toFixed(1)}%) proviene de solo **${categories.slice(0, 3).map((c: Category) => c.label).join(', ')}**. Considera diversificar.`);
                                         } else {
                                           insights.push(`📌 Buena diversificación: Las 3 categorías principales suman el ${topPercent.toFixed(1)}% del total.`);
                                         }
@@ -1378,7 +1383,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                     }
 
                                     // Total
-                                    insights.push(`💰 **Total de ingresos:** $${total.toLocaleString()}`);
+                                    insights.push(`💰 **Total de ingresos:** S/.${total.toLocaleString()}`);
 
                                     return insights.map((text, i) => (
                                       <li key={i} className="flex items-start gap-1.5">
@@ -1419,9 +1424,9 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                       callbacks: {
                                         label: function(context) {
                                           const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                          const value = context.raw;
+                                          const value = context.raw as number;
                                           const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                          return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
+                                          return `${context.label}: S/.${value.toLocaleString()} (${percentage}%)`;
                                         }
                                       }
                                     }
@@ -1445,26 +1450,26 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                     const data = chartDataHistorial.egresosPorCategoria;
                                     const labels = data.labels || [];
                                     const values = data.datasets[0].data || [];
-                                    const total = values.reduce((sum, value) => sum + value, 0);
-                                    const categories = labels.map((label, index) => ({
+                                    const total = values.reduce((sum: number, value: number) => sum + value, 0);
+                                    const categories = labels.map((label: string, index: number) => ({
                                       label,
                                       value: values[index],
                                       percentage: total > 0 ? (values[index] / total) * 100 : 0
-                                    })).sort((a, b) => b.value - a.value);
+                                    })).sort((a: any, b: any) => b.value - a.value);
 
                                     return (
                                       <>
-                                        {categories.map((cat, i) => (
+                                        {categories.map((cat: Category, i: number) => (
                                           <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                             <td className="px-4 py-2 font-medium text-gray-700">{cat.label}</td>
-                                            <td className="px-4 py-2 text-right">${cat.value.toLocaleString()}</td>
+                                            <td className="px-4 py-2 text-right">S/.{cat.value.toLocaleString()}</td>
                                             <td className="px-4 py-2 text-right">{cat.percentage.toFixed(1)}%</td>
                                           </tr>
                                         ))}
                                         {total > 0 && (
                                           <tr className="bg-red-50 font-semibold text-red-800">
                                             <td className="px-4 py-2">Total Egresos</td>
-                                            <td className="px-4 py-2 text-right">${total.toLocaleString()}</td>
+                                            <td className="px-4 py-2 text-right">S/.{total.toLocaleString()}</td>
                                             <td className="px-4 py-2 text-right">100%</td>
                                           </tr>
                                         )}
@@ -1483,28 +1488,28 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                   const data = chartDataHistorial.egresosPorCategoria;
                                   const labels = data.labels || [];
                                   const values = data.datasets[0].data || [];
-                                  const total = values.reduce((sum, value) => sum + value, 0);
+                                  const total = values.reduce((sum: number, value: number) => sum + value, 0);
 
                                   if (total === 0) return <li>No hay datos para generar insights.</li>;
 
-                                  const sorted = labels.map((label, i) => ({
+                                  const sorted = labels.map((label: string, i: number) => ({
                                     label,
                                     value: values[i],
                                     percentage: total > 0 ? (values[i] / total) * 100 : 0
-                                  })).sort((a, b) => b.value - a.value);
+                                  })).sort((a: any, b: any) => b.value - a.value);
 
                                   const insights = [];
 
                                   // Gasto principal
                                   if (sorted.length > 0) {
-                                    insights.push(`❗️ El mayor gasto es **${sorted[0].label}**, representando el ${sorted[0].percentage.toFixed(1)}% del total ($${sorted[0].value.toLocaleString()}).`);
+                                    insights.push(`❗️ El mayor gasto es **${sorted[0].label}**, representando el ${sorted[0].percentage.toFixed(1)}% del total (S/.${sorted[0].value.toLocaleString()}).`);
                                   }
 
                                   // Concentración
                                   if (sorted.length >= 3) {
-                                    const top3Percent = sorted.slice(0, 3).reduce((acc, cat) => acc + cat.percentage, 0);
+                                    const top3Percent = sorted.slice(0, 3).reduce((acc: number, cat: Category) => acc + cat.percentage, 0);
                                     if (top3Percent > 75) {
-                                      insights.push(`⚠️ El ${top3Percent.toFixed(1)}% de los gastos se concentra en **${sorted.slice(0, 3).map(c => c.label).join(', ')}**. Evalúa si es posible optimizar.`);
+                                      insights.push(`⚠️ El ${top3Percent.toFixed(1)}% de los gastos se concentra en **${sorted.slice(0, 3).map((c: Category) => c.label).join(', ')}**. Evalúa si es posible optimizar.`);
                                     } else {
                                         insights.push(`📊 Gastos diversificados: Las 3 categorías principales suman el ${top3Percent.toFixed(1)}%.`);
                                     }
@@ -1523,7 +1528,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                   }
 
                                   // Total
-                                  insights.push(`💸 **Total de egresos:** $${total.toLocaleString()}`);
+                                  insights.push(`💸 **Total de egresos:** S/.${total.toLocaleString()}`);
 
                                   return insights.map((text, i) => (
                                     <li key={i} className="flex items-start gap-1.5">
@@ -1548,7 +1553,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                         <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col h-full md:col-span-2 xl:col-span-1">
                           <h3 className="text-lg font-semibold text-gray-800 text-center mb-4">Ingresos vs Egresos</h3>
 
-                          {chartDataHistorial.distribucionGeneral?.datasets?.[0]?.data?.some((d) => d > 0) ? (
+                          {chartDataHistorial.distribucionGeneral?.datasets?.[0]?.data?.some((d: number) => d > 0) ? (
                             // Adicionado 'flex-grow'
                             <div className="space-y-6 flex flex-col flex-grow">
                               {/* Gráfico de distribución - Adicionado 'flex-shrink-0' */}
@@ -1564,9 +1569,9 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                         callbacks: {
                                           label: function (context) {
                                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const value = context.raw;
+                                            const value = context.raw as number;
                                             const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                            return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
+                                            return `${context.label}: S/.${value.toLocaleString()} (${percentage}%)`;
                                           },
                                         },
                                       },
@@ -1590,30 +1595,30 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                       const data = chartDataHistorial.distribucionGeneral;
                                       const labels = data.labels || [];
                                       const values = data.datasets[0].data || [];
-                                      const total = values.reduce((sum, value) => sum + value, 0);
+                                      const total = values.reduce((sum: number, value: number) => sum + value, 0);
 
-                                      const rows = labels.map((label, index) => ({
+                                      const rows = labels.map((label: string, index: number) => ({
                                         label,
                                         value: values[index],
                                         percentage: total > 0 ? (values[index] / total) * 100 : 0,
                                         bgColor: /ingreso/i.test(label) ? 'bg-green-50' : (/egreso/i.test(label) ? 'bg-red-50' : 'bg-white'),
                                         textColor: /ingreso/i.test(label) ? 'text-green-800' : (/egreso/i.test(label) ? 'text-red-800' : 'text-gray-700'),
-                                      })).sort((a, b) => b.value - a.value);
+                                      })).sort((a: any, b: any) => b.value - a.value);
 
-                                      const balance = (rows.find(r => /ingreso/i.test(r.label))?.value || 0) - (rows.find(r => /egreso/i.test(r.label))?.value || 0);
+                                      const balance = (rows.find((r: { label: string; value: number }) => /ingreso/i.test(r.label))?.value || 0) - (rows.find((r: { label: string; value: number }) => /egreso/i.test(r.label))?.value || 0);
 
                                       return (
                                         <>
-                                          {rows.map((item, i) => (
+                                          {rows.map((item: { label: string; value: number; percentage: number; bgColor: string; textColor: string }, i: number) => (
                                             <tr key={i} className={`${item.bgColor} hover:bg-gray-100`}>
                                               <td className={`px-4 py-2 font-medium ${item.textColor}`}>{item.label}</td>
-                                              <td className={`px-4 py-2 text-right ${item.textColor}`}>${item.value.toLocaleString()}</td>
+                                              <td className={`px-4 py-2 text-right ${item.textColor}`}>S/.{item.value.toLocaleString()}</td>
                                               <td className={`px-4 py-2 text-right ${item.textColor}`}>{item.percentage.toFixed(1)}%</td>
                                             </tr>
                                           ))}
                                           <tr className={`font-semibold ${balance >= 0 ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'}`}>
                                             <td className="px-4 py-2">Balance (Ingresos - Egresos)</td>
-                                            <td className="px-4 py-2 text-right" colSpan={2}>${balance.toLocaleString()}</td>
+                                            <td className="px-4 py-2 text-right" colSpan={2}>S/.{balance.toLocaleString()}</td>
                                           </tr>
                                         </>
                                       );
@@ -1630,19 +1635,19 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                     const data = chartDataHistorial.distribucionGeneral;
                                     const labels = data.labels || [];
                                     const values = data.datasets[0].data || [];
-                                    const total = values.reduce((sum, value) => sum + value, 0);
+                                    const total = values.reduce((sum: number, value: number) => sum + value, 0);
 
                                     if (total === 0) return <li>No hay datos para generar insights.</li>;
 
-                                    const sorted = labels.map((label, i) => ({
+                                    const sorted = labels.map((label: string, i: number) => ({
                                       label,
                                       value: values[i],
                                       percentage: total > 0 ? (values[i] / total) * 100 : 0,
-                                    })).sort((a, b) => b.value - a.value);
+                                    })).sort((a: Category, b: Category) => b.value - a.value);
 
                                     const insights = [];
-                                    const ingresos = sorted.find(item => /ingreso/i.test(item.label));
-                                    const egresos = sorted.find(item => /egreso/i.test(item.label));
+                                    const ingresos = sorted.find((item: Category) => /ingreso/i.test(item.label));
+                                    const egresos = sorted.find((item: Category) => /egreso/i.test(item.label));
 
                                     if (ingresos && egresos) {
                                       const balance = ingresos.value - egresos.value;
@@ -1650,8 +1655,8 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                       const balanceClass = balance >= 0 ? 'text-green-700 font-semibold' : 'text-red-700 font-semibold';
                                       insights.push(`📊 Comparativa: Ingresos (${ingresos.percentage.toFixed(1)}%) vs Egresos (${egresos.percentage.toFixed(1)}%).`);
                                       insights.push(balance >= 0
-                                        ? `✅ ¡Superávit! El balance es <span class="${balanceClass}">${balanceSign}$${Math.abs(balance).toLocaleString()}</span>.`
-                                        : `⚠️ ¡Déficit! El balance es <span class="${balanceClass}">${balanceSign}$${Math.abs(balance).toLocaleString()}</span>. Revisa tus gastos.`);
+                                        ? `✅ ¡Superávit! El balance es <span class="${balanceClass}">${balanceSign}S/.${Math.abs(balance).toLocaleString()}</span>.`
+                                        : `⚠️ ¡Déficit! El balance es <span class="${balanceClass}">${balanceSign}S/.${Math.abs(balance).toLocaleString()}</span>. Revisa tus gastos.`);
                                     } else if (ingresos) {
                                         insights.push(`✅ Solo se registraron ingresos por $${ingresos.value.toLocaleString()}.`);
                                     } else if (egresos) {
@@ -1663,7 +1668,7 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                     //   insights.push(`⚖️ ${sorted[0].label} representa más del 60% (${sorted[0].percentage.toFixed(1)}%) del flujo total.`);
                                     // }
 
-                                    insights.push(`💰 **Flujo total (Ingresos + Egresos):** $${total.toLocaleString()}`);
+                                    insights.push(`💰 **Flujo total (Ingresos + Egresos):** S/.${total.toLocaleString()}`);
 
                                     return insights.map((text, i) => (
                                       <li key={i} className="flex items-start gap-1.5">
@@ -1796,9 +1801,9 @@ function MiCaja({ userId, userRole }: MiCajaProps) {
                                                                                             {tipoMovHist}
                                                                                         </span>
                                                                                     </td>
-                                                                                    <td className="px-2 py-1.5">{reg.categoria?.nombre || '-'}</td>
+                                                                                    <td className="px-2 py-1.5">{reg.tipo_movimiento?.nombre || '-'}</td>
                                                                                     <td className="px-2 py-1.5 truncate max-w-xs" title={reg.descripcion}>{reg.descripcion || '-'}</td>
-                                                                                    <td className="px-2 py-1.5">{reg.paciente?.nombre || '-'}</td>
+                                                                                    <td className="px-2 py-1.5">{reg.paciente?.nombres || '-'}</td>
                                                                                     <td className="px-2 py-1.5">{reg.medico?.nombre || '-'}</td>
                                                                                     <td className={`px-2 py-1.5 text-right whitespace-nowrap font-medium ${valorColorHist}`}>
                                                                                         {formatMoneda(reg.valor)}
