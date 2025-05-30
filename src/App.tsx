@@ -15,7 +15,7 @@ import HomePage from './pages/HomePage'; // HomePage is our main layout componen
 import GestionDoctores from './pages/GestionDoctores';
 import GestionPaciente from './pages/GestionPaciente';
 import MiCaja from './pages/MiCaja';
-import GestionCitas from './pages/GestionCitas';
+import GestionCitas from './pages/GestionCitas.tsx';
 import ClinicalHistoryOverviewPage from './pages/ClinicalHistoryOverviewPage';
 import PatientClinicalHistoryPage from './pages/PatientClinicalHistoryPage';
 
