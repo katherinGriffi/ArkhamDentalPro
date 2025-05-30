@@ -4,7 +4,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/AndrewsDentalGroup/', // 🔥 Isso é CRUCIAL para GitHub Pages!
+  base: '/ArkhamDentalPro/', // 🔥 Isso é CRUCIAL para GitHub Pages!
   build: {
     outDir: 'docs', // Build na pasta docs/ no nível superior
     emptyOutDir: true,
