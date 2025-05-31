@@ -24,4 +24,11 @@ dist-ssr
 *.sw?
 *.env
 
-.env
+
+
+
+# Directorios generados
+node_modules/
+dist/
+build/
+docs/
