@@ -99,6 +99,9 @@ interface AuthContextType {
 // --- Configuración de OAuth ---
 // Usa variables de entorno para seguridad. CLIENT_SECRET NO DEBE ESTAR AQUÍ.
 
+// Configuración de OAuth
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const CLIENT_SECRET = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
 
 const REDIRECT_URI = 'http://localhost:5173/AndrewsDentalGroup/'; // Asegúrate de que coincida con lo configurado en Google Cloud Console
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
